@@ -24,6 +24,16 @@ Thumbs.db
 ## Temp
 *.tmp
 
+## Node (SVG generation script)
+node_modules/
+package-lock.json
+
+## Unity integration sample project generated state
+tests/Unityctl.Integration/SampleUnityProject/Library/
+tests/Unityctl.Integration/SampleUnityProject/Logs/
+tests/Unityctl.Integration/SampleUnityProject/Temp/
+tests/Unityctl.Integration/SampleUnityProject/UserSettings/
+
 ## Ralph workspace (반복 간 맥락 파일)
 ralph/workspace/*
 !ralph/workspace/.gitkeep

@@ -20,6 +20,31 @@ public static class SceneCommand
         CommandRunner.Execute(project, request, json);
     }
 
+    public static void Open(
+        string project,
+        string path,
+        string mode = "single",
+        bool force = false,
+        bool saveCurrentModified = false,
+        bool json = false)
+    {
+        var request = CreateOpenRequest(path, mode, force, saveCurrentModified);
+        CommandRunner.Execute(project, request, json);
+    }
+
+    public static void Create(
+        string project,
+        string path,
+        string template = "default",
+        string mode = "single",
+        bool force = false,
+        bool saveCurrentModified = false,
+        bool json = false)
+    {
+        var request = CreateCreateRequest(path, template, mode, force, saveCurrentModified);
+        CommandRunner.Execute(project, request, json);
+    }
+
     internal static CommandRequest CreateSaveRequest(string? scene, bool all)
     {
         var parameters = new JsonObject();
@@ -29,6 +54,70 @@ public static class SceneCommand
         return new CommandRequest
         {
             Command = WellKnownCommands.SceneSave,
+            Parameters = parameters
+        };
+    }
+
+    internal static CommandRequest CreateOpenRequest(
+        string path,
+        string mode = "single",
+        bool force = false,
+        bool saveCurrentModified = false)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            throw new ArgumentException("path must not be empty", nameof(path));
+
+        var parameters = new JsonObject
+        {
+            ["path"] = path
+        };
+
+        if (!string.IsNullOrWhiteSpace(mode))
+            parameters["mode"] = mode;
+
+        if (force)
+            parameters["force"] = true;
+
+        if (saveCurrentModified)
+            parameters["saveCurrentModified"] = true;
+
+        return new CommandRequest
+        {
+            Command = WellKnownCommands.SceneOpen,
+            Parameters = parameters
+        };
+    }
+
+    internal static CommandRequest CreateCreateRequest(
+        string path,
+        string template = "default",
+        string mode = "single",
+        bool force = false,
+        bool saveCurrentModified = false)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            throw new ArgumentException("path must not be empty", nameof(path));
+
+        var parameters = new JsonObject
+        {
+            ["path"] = path
+        };
+
+        if (!string.IsNullOrWhiteSpace(template))
+            parameters["template"] = template;
+
+        if (!string.IsNullOrWhiteSpace(mode))
+            parameters["mode"] = mode;
+
+        if (force)
+            parameters["force"] = true;
+
+        if (saveCurrentModified)
+            parameters["saveCurrentModified"] = true;
+
+        return new CommandRequest
+        {
+            Command = WellKnownCommands.SceneCreate,
             Parameters = parameters
         };
     }

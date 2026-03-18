@@ -28,7 +28,10 @@ public static class AsyncCommandRunner
         string project,
         CommandRequest request,
         Func<string, CommandRequest, CancellationToken, Task<CommandResponse>> executor,
+        string pollCommand = WellKnownCommands.TestResult,
         int timeoutSeconds = 300,
+        StatusCode timeoutStatusCode = StatusCode.TestFailed,
+        string? timeoutMessage = null,
         CancellationToken ct = default)
     {
         SessionManager? sessionManager = null;
@@ -72,7 +75,7 @@ public static class AsyncCommandRunner
 
         var pollRequest = new CommandRequest
         {
-            Command = WellKnownCommands.TestResult,
+            Command = pollCommand,
             Parameters = new JsonObject
             {
                 ["requestId"] = requestId
@@ -102,8 +105,8 @@ public static class AsyncCommandRunner
         {
             sw.Stop();
             var timeoutResponse = CommandResponse.Fail(
-                StatusCode.TestFailed,
-                $"Test execution timed out after {timeoutSeconds}s");
+                timeoutStatusCode,
+                timeoutMessage ?? $"Command execution timed out after {timeoutSeconds}s");
             if (sessionManager != null && sessionId != null)
             {
                 try { await sessionManager.TimeoutAsync(sessionId, ct); } catch { }

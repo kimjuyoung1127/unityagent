@@ -1,4 +1,6 @@
 using System.Text.Json;
+using Spectre.Console;
+using Unityctl.Cli.Output;
 using Unityctl.Core.Discovery;
 using Unityctl.Core.Platform;
 
@@ -27,16 +29,23 @@ public static class EditorCommands
         }
         else
         {
-            Console.WriteLine($"Found {editors.Count} Unity Editor(s):");
-            Console.WriteLine();
+            var console = ConsoleOutput.CreateOut();
+            console.MarkupLine($"Found [cyan]{editors.Count}[/] Unity Editor(s):");
+            console.WriteLine();
+
+            var table = new Table()
+                .Border(TableBorder.Rounded)
+                .AddColumn("Version")
+                .AddColumn("Location");
+
             foreach (var editor in editors)
             {
-                Console.Write("  ");
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.Write(editor.Version);
-                Console.ResetColor();
-                Console.WriteLine($"  {editor.Location}");
+                table.AddRow(
+                    new Markup($"[cyan]{Markup.Escape(editor.Version)}[/]"),
+                    new Text(editor.Location));
             }
+
+            console.Write(table);
         }
     }
 }

@@ -237,6 +237,29 @@ public static class CommandCatalog
         Parameter("all", "bool", "Save all dirty scenes", required: false),
         Parameter("json", "bool", "Output as JSON", required: false));
 
+    public static readonly CommandDefinition SceneOpen = Define(
+        WellKnownCommands.SceneOpen,
+        "Open a scene in the Unity Editor",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("path", "string", "Scene asset path to open", required: true),
+        Parameter("mode", "string", "Open mode: single or additive (default: single)", required: false),
+        Parameter("force", "bool", "Discard dirty scene changes when opening in single mode", required: false),
+        Parameter("saveCurrentModified", "bool", "Save dirty scenes before opening in single mode", required: false),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
+    public static readonly CommandDefinition SceneCreate = Define(
+        WellKnownCommands.SceneCreate,
+        "Create and save a new scene asset",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("path", "string", "Scene asset path to create", required: true),
+        Parameter("template", "string", "Scene template: default or empty (default: default)", required: false),
+        Parameter("mode", "string", "Create mode: single or additive (default: single)", required: false),
+        Parameter("force", "bool", "Discard dirty scene changes when creating in single mode", required: false),
+        Parameter("saveCurrentModified", "bool", "Save dirty scenes before creating in single mode", required: false),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
     public static readonly CommandDefinition ComponentAdd = Define(
         WellKnownCommands.ComponentAdd,
         "Add a component to a GameObject",
@@ -262,6 +285,234 @@ public static class CommandCatalog
         Parameter("componentId", "string", "GlobalObjectId of the target component", required: true),
         Parameter("property", "string", "SerializedProperty path (e.g. m_Mass, m_LocalPosition.x)", required: true),
         Parameter("value", "string", "New value as JSON string", required: true),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
+    public static readonly CommandDefinition UndoCmd = Define(
+        WellKnownCommands.Undo,
+        "Undo the most recent Unity editor operation",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
+    public static readonly CommandDefinition RedoCmd = Define(
+        WellKnownCommands.Redo,
+        "Redo the most recently undone Unity editor operation",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
+    // Write API — Phase C-1: Asset CRUD
+    public static readonly CommandDefinition AssetCreate = Define(
+        WellKnownCommands.AssetCreate,
+        "Create a new asset (ScriptableObject, etc.)",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("path", "string", "Asset path (e.g. Assets/Data/MyConfig.asset)", required: true),
+        Parameter("type", "string", "Asset type (e.g. ScriptableObject)", required: true),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
+    public static readonly CommandDefinition AssetCreateFolder = Define(
+        WellKnownCommands.AssetCreateFolder,
+        "Create a folder in the Assets directory",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("parent", "string", "Parent folder path (e.g. Assets/Data)", required: true),
+        Parameter("name", "string", "New folder name", required: true),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
+    public static readonly CommandDefinition AssetCopy = Define(
+        WellKnownCommands.AssetCopy,
+        "Copy an asset to a new path",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("source", "string", "Source asset path", required: true),
+        Parameter("destination", "string", "Destination asset path", required: true),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
+    public static readonly CommandDefinition AssetMoveCmd = Define(
+        WellKnownCommands.AssetMove,
+        "Move or rename an asset",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("source", "string", "Source asset path", required: true),
+        Parameter("destination", "string", "Destination asset path", required: true),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
+    public static readonly CommandDefinition AssetDeleteCmd = Define(
+        WellKnownCommands.AssetDelete,
+        "Delete an asset",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("path", "string", "Asset path to delete", required: true),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
+    public static readonly CommandDefinition AssetImport = Define(
+        WellKnownCommands.AssetImport,
+        "Force reimport an asset",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("path", "string", "Asset path to reimport", required: true),
+        Parameter("options", "string", "Import options (e.g. ForceUpdate)", required: false),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
+    // Write API — Phase C-2: Prefab
+    public static readonly CommandDefinition PrefabCreate = Define(
+        WellKnownCommands.PrefabCreate,
+        "Save a scene GameObject as a Prefab asset",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("target", "string", "GlobalObjectId of the scene GameObject", required: true),
+        Parameter("path", "string", "Prefab asset path (e.g. Assets/Prefabs/MyPrefab.prefab)", required: true),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
+    public static readonly CommandDefinition PrefabUnpack = Define(
+        WellKnownCommands.PrefabUnpack,
+        "Unpack a prefab instance in the scene",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("id", "string", "GlobalObjectId of the prefab instance", required: true),
+        Parameter("mode", "string", "Unpack mode: completely or outermost (default: outermost)", required: false),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
+    public static readonly CommandDefinition PrefabApply = Define(
+        WellKnownCommands.PrefabApply,
+        "Apply prefab instance overrides back to the Prefab asset",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("id", "string", "GlobalObjectId of the prefab instance", required: true),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
+    public static readonly CommandDefinition PrefabEditCmd = Define(
+        WellKnownCommands.PrefabEdit,
+        "Edit a Prefab asset's contents (set property on root or child)",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("path", "string", "Prefab asset path", required: true),
+        Parameter("property", "string", "SerializedProperty path on the root GameObject", required: true),
+        Parameter("value", "string", "New value as JSON string", required: true),
+        Parameter("childPath", "string", "Hierarchy path to child (e.g. Body/Arm)", required: false),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
+    // Write API — Phase C-3: Package Manager + Project Settings
+    public static readonly CommandDefinition PackageListCmd = Define(
+        WellKnownCommands.PackageList,
+        "List installed packages",
+        "query",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
+    public static readonly CommandDefinition PackageAddCmd = Define(
+        WellKnownCommands.PackageAdd,
+        "Add a package to the project",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("package", "string", "Package identifier (e.g. com.unity.textmeshpro@3.0.6)", required: true),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
+    public static readonly CommandDefinition PackageRemoveCmd = Define(
+        WellKnownCommands.PackageRemove,
+        "Remove a package from the project",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("package", "string", "Package name (e.g. com.unity.textmeshpro)", required: true),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
+    public static readonly CommandDefinition ProjectSettingsGetCmd = Define(
+        WellKnownCommands.ProjectSettingsGet,
+        "Get a project settings property value",
+        "query",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("scope", "string", "Settings scope: editor, graphics, quality, physics, time, audio", required: true),
+        Parameter("property", "string", "SerializedProperty path", required: true),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
+    public static readonly CommandDefinition ProjectSettingsSetCmd = Define(
+        WellKnownCommands.ProjectSettingsSet,
+        "Set a project settings property value",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("scope", "string", "Settings scope: editor, graphics, quality, physics, time, audio", required: true),
+        Parameter("property", "string", "SerializedProperty path", required: true),
+        Parameter("value", "string", "New value", required: true),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
+    // Write API — Phase C-4: Material/Shader
+    public static readonly CommandDefinition MaterialGetCmd = Define(
+        WellKnownCommands.MaterialGet,
+        "Get material properties",
+        "query",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("path", "string", "Material asset path", required: true),
+        Parameter("property", "string", "Property name (optional, returns all if omitted)", required: false),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
+    public static readonly CommandDefinition MaterialSetCmd = Define(
+        WellKnownCommands.MaterialSet,
+        "Set a material property value",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("path", "string", "Material asset path", required: true),
+        Parameter("property", "string", "Property name (e.g. _Color, _MainTex)", required: true),
+        Parameter("propertyType", "string", "Property type: color, float, texture, vector, int", required: true),
+        Parameter("value", "string", "New value (JSON for color/vector, path for texture, number for float/int)", required: true),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
+    public static readonly CommandDefinition MaterialSetShaderCmd = Define(
+        WellKnownCommands.MaterialSetShader,
+        "Change a material's shader",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("path", "string", "Material asset path", required: true),
+        Parameter("shader", "string", "Shader name (e.g. Standard, Universal Render Pipeline/Lit)", required: true),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
+    // Write API — Phase C-5: Animation + UI
+    public static readonly CommandDefinition AnimationCreateClipCmd = Define(
+        WellKnownCommands.AnimationCreateClip,
+        "Create an AnimationClip asset",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("path", "string", "Asset path for the clip (e.g. Assets/Animations/Walk.anim)", required: true),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
+    public static readonly CommandDefinition AnimationCreateControllerCmd = Define(
+        WellKnownCommands.AnimationCreateController,
+        "Create an AnimatorController asset",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("path", "string", "Asset path (e.g. Assets/Animations/Player.controller)", required: true),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
+    public static readonly CommandDefinition UiCanvasCreateCmd = Define(
+        WellKnownCommands.UiCanvasCreate,
+        "Create a Canvas with CanvasScaler and GraphicRaycaster",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("name", "string", "Canvas GameObject name (default: Canvas)", required: false),
+        Parameter("renderMode", "string", "Render mode: ScreenSpaceOverlay, ScreenSpaceCamera, WorldSpace (default: ScreenSpaceOverlay)", required: false),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
+    public static readonly CommandDefinition UiElementCreateCmd = Define(
+        WellKnownCommands.UiElementCreate,
+        "Create a UI element (Button, Text, Image, Panel)",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("type", "string", "Element type: Button, Text, Image, Panel, InputField, Toggle, Slider, Dropdown, ScrollView", required: true),
+        Parameter("name", "string", "Element name (optional)", required: false),
+        Parameter("parent", "string", "GlobalObjectId of parent (Canvas or UI element)", required: false),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
+    public static readonly CommandDefinition UiSetRectCmd = Define(
+        WellKnownCommands.UiSetRect,
+        "Set RectTransform properties on a UI element",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("id", "string", "GlobalObjectId of the UI element", required: true),
+        Parameter("anchoredPosition", "string", "Anchored position as JSON [x,y]", required: false),
+        Parameter("sizeDelta", "string", "Size delta as JSON [w,h]", required: false),
+        Parameter("anchorMin", "string", "Anchor min as JSON [x,y]", required: false),
+        Parameter("anchorMax", "string", "Anchor max as JSON [x,y]", required: false),
+        Parameter("pivot", "string", "Pivot as JSON [x,y]", required: false),
         Parameter("json", "bool", "Output as JSON", required: false));
 
     public static CommandDefinition[] All { get; } =
@@ -294,9 +545,41 @@ public static class CommandCatalog
         GameObjectMove,
         GameObjectRename,
         SceneSave,
+        SceneOpen,
+        SceneCreate,
         ComponentAdd,
         ComponentRemove,
-        ComponentSetProperty
+        ComponentSetProperty,
+        UndoCmd,
+        RedoCmd,
+        // Phase C-1: Asset CRUD
+        AssetCreate,
+        AssetCreateFolder,
+        AssetCopy,
+        AssetMoveCmd,
+        AssetDeleteCmd,
+        AssetImport,
+        // Phase C-2: Prefab
+        PrefabCreate,
+        PrefabUnpack,
+        PrefabApply,
+        PrefabEditCmd,
+        // Phase C-3: Package Manager + Project Settings
+        PackageListCmd,
+        PackageAddCmd,
+        PackageRemoveCmd,
+        ProjectSettingsGetCmd,
+        ProjectSettingsSetCmd,
+        // Phase C-4: Material/Shader
+        MaterialGetCmd,
+        MaterialSetCmd,
+        MaterialSetShaderCmd,
+        // Phase C-5: Animation + UI
+        AnimationCreateClipCmd,
+        AnimationCreateControllerCmd,
+        UiCanvasCreateCmd,
+        UiElementCreateCmd,
+        UiSetRectCmd
     ];
 
     private static CommandDefinition Define(

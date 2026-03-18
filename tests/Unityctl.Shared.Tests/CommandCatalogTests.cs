@@ -16,9 +16,20 @@ public class CommandCatalogTests
              "scene snapshot", "scene diff",
              "schema", "exec", "workflow",
              "play-mode", "player-settings-get", "player-settings-set", "asset-refresh",
-             "gameobject-create", "gameobject-delete", "gameobject-set-active",
-             "gameobject-move", "gameobject-rename", "scene-save",
-             "component-add", "component-remove", "component-set-property"],
+              "gameobject-create", "gameobject-delete", "gameobject-set-active",
+              "gameobject-move", "gameobject-rename", "scene-save", "scene-open", "scene-create",
+              "component-add", "component-remove", "component-set-property", "undo", "redo",
+              // Phase C-1: Asset CRUD
+              "asset-create", "asset-create-folder", "asset-copy", "asset-move", "asset-delete", "asset-import",
+             // Phase C-2: Prefab
+             "prefab-create", "prefab-unpack", "prefab-apply", "prefab-edit",
+             // Phase C-3: Package Manager + Project Settings
+             "package-list", "package-add", "package-remove", "project-settings-get", "project-settings-set",
+             // Phase C-4: Material/Shader
+             "material-get", "material-set", "material-set-shader",
+             // Phase C-5: Animation + UI
+             "animation-create-clip", "animation-create-controller",
+             "ui-canvas-create", "ui-element-create", "ui-set-rect"],
             names);
     }
 

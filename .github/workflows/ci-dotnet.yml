@@ -29,3 +29,27 @@ jobs:
 
       - name: Test
         run: dotnet test --no-build -c Release --verbosity normal
+
+      - name: Publish CLI
+        run: >
+          dotnet publish src/Unityctl.Cli/Unityctl.Cli.csproj
+          -c Release
+          --self-contained false
+          -o publish/cli
+
+      - name: Smoke published CLI (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          ./publish/cli/unityctl.exe --help
+          ./publish/cli/unityctl.exe schema --format json | Out-Null
+          ./publish/cli/unityctl.exe tools --json | Out-Null
+
+      - name: Smoke published CLI (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          chmod +x ./publish/cli/unityctl
+          ./publish/cli/unityctl --help
+          ./publish/cli/unityctl schema --format json >/dev/null
+          ./publish/cli/unityctl tools --json >/dev/null

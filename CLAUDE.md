@@ -28,10 +28,14 @@ unityctl 작업 시작 시 가장 먼저 읽는 진입 문서입니다.
 - Write API Phase A (PlayMode, PlayerSettings, AssetRefresh): Done
 - Write API Phase B (GameObject CRUD, Scene Save): Done
 - Write API Phase B.5 (Component CRUD): Done
+- MCP Hybrid (unityctl_run + schema filter): Done
+- Write API 확장 (Scene open/create, Undo/Redo, Phase C): Done
 
 최근 확정 사항:
+- Write API 확장 구현 완료 (2026-03-18): 27개 신규 write 명령 (Asset CRUD 6 + Prefab 4 + Package/Settings 5 + Material 3 + Animation/UI 5 + Scene open/create 2 + Undo/Redo 2). 총 39개 write 명령. MCP 도구 13개 유지 (unityctl_run allowlist 39개). 388개 dotnet 테스트 통과. scene open/create + undo/redo Unity 실측 완료. Phase C (asset/prefab/package/material/animation/ui) 실측 미완.
+- MCP 하이브리드 전략 구현 완료 (2026-03-18): `unityctl_run` (allowlist 12개 write 명령), `unityctl_schema(command=...)` 온디맨드 필터. MCP 도구 12→13개. 356개 dotnet 테스트 통과. Unity 실측 완료.
 - Write API 전체 구현 완료 (2026-03-18): Phase A (play, player-settings, asset refresh) + Phase B (gameobject CRUD, scene save) + Phase B.5 (component add/remove/set-property). 351개 dotnet 테스트 통과. Unity 실측 완료.
-- Phase 5 Agent Layer 구현 완료 (2026-03-18): Unityctl.Mcp (MCP 서버, 11개 도구), SchemaCommand, ExecCommand, WorkflowCommand, ExecHandler(Plugin). 304개 dotnet 테스트 통과
+- Phase 5 Agent Layer 구현 완료 (2026-03-18): Unityctl.Mcp (MCP 서버, 13개 도구), SchemaCommand, ExecCommand, WorkflowCommand, ExecHandler(Plugin). 356개 dotnet 테스트 통과
 - Phase 4B Scene Diff 구현 완료 (2026-03-18): SceneSnapshotHandler, SceneDiffHandler, SceneCommand, SceneSnapshot/SceneDiffResult 프로토콜.
 - Phase 3C Watch Mode 구현 완료 (2026-03-18): WatchCommand, WatchEventSource, EventEnvelope, IPC Push 스트리밍
 - Phase 4A Ghost Mode 구현 완료 (2026-03-18)
@@ -54,7 +58,7 @@ unityctl 작업 시작 시 가장 먼저 읽는 진입 문서입니다.
 
 ```bash
 dotnet build unityctl.slnx                                          # 빌드
-dotnet test unityctl.slnx                                           # 전체 테스트 (351개)
+dotnet test unityctl.slnx                                           # 전체 테스트 (388개)
 dotnet test unityctl.slnx --filter "FullyQualifiedName!~Integration" # 유닛만
 dotnet run --project src/Unityctl.Cli -- <command> [options]         # CLI 실행
 ```
@@ -67,7 +71,7 @@ unityctl.slnx
 ├── src/Unityctl.Core      (net10.0)         비즈니스 로직 (transport, discovery, retry)
 ├── src/Unityctl.Cli       (net10.0)         얇은 CLI 셸 → Core에 위임
 ├── src/Unityctl.Plugin    (Unity UPM)       Editor 브릿지 (솔루션 빌드에 미포함)
-├── tests/*Tests           xUnit 테스트 (351개)
+├── tests/*Tests           xUnit 테스트 (388개)
 └── docs/                  ref/ + status/ + daily/ + weekly/
 ```
 
@@ -114,6 +118,8 @@ unityctl.slnx
 | **Write A** | ✅ 완료 | **PlayMode, PlayerSettings, AssetRefresh** (IPC write path) |
 | **Write B** | ✅ 완료 | **GameObject CRUD + Scene Save** (GlobalObjectId, Undo, PrefabGuard) |
 | **Write B.5** | ✅ 완료 | **Component CRUD** (add/remove/set-property, SerializedObject) |
+| **MCP Hybrid** | ✅ 완료 | **unityctl_run** (allowlist 39 write 명령) + **schema filter** (command 파라미터) |
+| **Write C** | ✅ 완료 | **커버리지 확장** (Asset 6 + Prefab 4 + Package/Settings 5 + Material 3 + Animation/UI 5 + Scene 2 + History 2 = 27개) |
 
 ## Source of Truth 문서
 - 탐색 인덱스: `AGENTS.md`
@@ -138,7 +144,7 @@ unityctl.slnx
 7. 개발 진행 상세 이력: `docs/DEVELOPMENT.md`
 
 ## 테스트 표준
-- 총 351개 (Shared 60 + Core 96 + Cli 184 + Mcp 11)
+- 총 388개 (Shared 60 + Core 96 + Cli 193 + Mcp 16 + Integration 23)
 - `dotnet test unityctl.slnx` green 필수
 - Integration.Tests는 AppLocker 감지 + graceful skip
 

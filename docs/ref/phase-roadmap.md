@@ -16,6 +16,7 @@
 | Tasks | Session Layer | 3A | ✅ |
 | Streaming | Watch Mode | 3C | ✅ |
 | Server | `Unityctl.Mcp` (C# SDK, stdio) | 5 | ✅ |
+| Write via MCP | `unityctl_run` (allowlist 35 write 명령) | MCP Hybrid + Write C | ✅ |
 | Elicitation | Ghost Mode preflight 결과 | 4A | ✅ |
 
 unityctl은 MCP를 대체하는 동시에, Phase 5에서 네이티브 .NET MCP 서버를 직접 구현합니다.
@@ -41,6 +42,8 @@ Phase 4A  — Ghost Mode            ✅ 완료
 Phase 3C  — Watch Mode            ✅ 완료
 Phase 4B  — Scene Diff            ✅ 완료
 Phase 5   — Agent Layer           ✅ 완료
+MCP Hybrid — unityctl_run + schema filter  ✅ 완료
+Write C   — 커버리지 확장 (23개 명령)     ✅ 완료
 ```
 
 ### 실행 순서 변경 근거
@@ -611,7 +614,97 @@ unityctl workflow run build-and-test.json
 
 ---
 
+## MCP 하이브리드 전략
+
+상태: **구현 완료**
+
+Write API (12개 write 명령)를 MCP에 노출할 때, 개별 tool로 펼치면 tools/list가 비대해져 토큰 우위가 반감됨.
+해법: **`unityctl_run` 단일 tool로 수렴** + **`unityctl_schema(command=...)` 온디맨드 필터**.
+
+### 설계
+
+- 기존 12개 read/meta/streaming MCP 도구 유지
+- write 계열은 `unityctl_run(project, command, parameters)` 하나로 접근
+- `unityctl_run`은 allowlist 기반 — 35개 허용 명령 실행:
+  Phase A/B/B.5: `play-mode`, `player-settings`, `asset-refresh`,
+  `gameobject-create`, `gameobject-delete`, `gameobject-set-active`,
+  `gameobject-move`, `gameobject-rename`, `scene-save`,
+  `component-add`, `component-remove`, `component-set-property`
+  Phase C: `asset-create`, `asset-create-folder`, `asset-copy`, `asset-move`, `asset-delete`, `asset-import`,
+  `prefab-create`, `prefab-unpack`, `prefab-apply`, `prefab-edit`,
+  `package-list`, `package-add`, `package-remove`, `project-settings-get`, `project-settings-set`,
+  `material-get`, `material-set`, `material-set-shader`,
+  `animation-create-clip`, `animation-create-controller`,
+  `ui-canvas-create`, `ui-element-create`, `ui-set-rect`
+- `unityctl_schema`에 `command` 파라미터 추가 — 단일 명령 스키마 온디맨드 조회
+- MCP tool 수: 12 → **13** (tools/list 크기 ~500B 증가, 8.3x 우위 유지)
+- Phase C 이후 allowlist: 12 → **39**개 (MCP tool 수 13개 유지)
+
+### AI 에이전트 사용 흐름
+
+```
+1. AI: unityctl_schema(command="gameobject-create")
+   → { "name": "gameobject-create", "parameters": [...] }
+
+2. AI: unityctl_run(project="/path", command="gameobject-create", parameters='{"name":"Cube"}')
+   → { "success": true, "globalObjectId": "...", "sceneDirty": true }
+
+3. AI: unityctl_run(project="/path", command="scene-save")
+   → { "success": true, "scenePath": "..." }
+```
+
+### 산출물
+
+- `src/Unityctl.Mcp/Tools/RunTool.cs` — `unityctl_run` MCP 도구
+- `src/Unityctl.Mcp/Tools/SchemaTool.cs` — `command` 파라미터 추가
+- `tests/Unityctl.Mcp.Tests/` — RunTool/SchemaTool 필터 테스트 5개 추가 (총 16개)
+
+---
+
+## Write API Phase C — 커버리지 확장
+
+상태: **구현 완료**
+
+기존 Write API (12개 명령)에 23개 신규 명령 추가. 총 35개 write 명령.
+MCP 도구 수 13개 유지 — 모든 신규 명령은 `unityctl_run` allowlist 추가만.
+
+### 산출물 (Phase별)
+
+| Sub-Phase | 명령 수 | 명령 |
+|-----------|---------|------|
+| C-1 Asset CRUD | 6 | asset-create, asset-create-folder, asset-copy, asset-move, asset-delete, asset-import |
+| C-2 Prefab | 4 | prefab-create, prefab-unpack, prefab-apply, prefab-edit |
+| C-3 Package/Settings | 5 | package-list, package-add, package-remove, project-settings-get, project-settings-set |
+| C-4 Material/Shader | 3 | material-get, material-set, material-set-shader |
+| C-5 Animation/UI | 5 | animation-create-clip, animation-create-controller, ui-canvas-create, ui-element-create, ui-set-rect |
+
+### 파일 변경 범위
+
+- Shared: `WellKnownCommands.cs` (+23 상수), `CommandCatalog.cs` (+23 Define)
+- Plugin: 23개 핸들러 신규 (`Editor/Commands/`), `WellKnownCommands.cs` 동기화
+- CLI: 7개 커맨드 파일 (AssetCommand 수정 + PrefabCommand/PackageCommand/ProjectSettingsCommand/MaterialCommand/AnimationCommand/UiCommand 신규), Program.cs (+23 등록)
+- MCP: `RunTool.cs` allowlist 12→35개
+- Tests: `CommandCatalogTests.cs` 이름 배열 갱신
+
+### CoplayDev 대비 추정 대체율
+
+> ⚠️ 아래 수치는 추정치. Write API 확장 27개 명령은 코드 구현 완료/빌드 통과이며, `scene open/create`, `undo/redo`는 Unity 실기 검증 완료. 나머지는 일부 미완.
+
+| 완료 | AI 에이전트 일상 (추정) | CoplayDev 기능 패리티 (추정) |
+|------|----------------------|---------------------------|
+| Phase A/B/B.5 (12개) | ~75-85% | ~45-50% |
+| + Phase C (35개) | **high-80s%** | **~60%** |
+
+- "AI 에이전트 일상"은 GO/Component/Asset/Prefab/Material/Scene/Play/Test/Build 루프 기준.
+- CoplayDev는 39개 도구에 manage_* sub-action 수백 개 (graphics 33, animation Cinemachine, vfx, probuilder, texture, terrain, audio 등).
+- unityctl 독점 기능 (headless batch, dry-run, flight recorder, session, watch streaming, scene diff)은 CoplayDev에 없으므로 패리티 산정에 +25%p 가치.
+- `exec` escape hatch를 고려하면 실질 커버리지는 수치 이상이나, 구조화 도구 대비 사용성 차이로 표에 미반영.
+- 남은 핵심 공백: script editing, graphics/vfx, texture, multi-instance.
+
+---
+
 ## 다음 우선순위
 
 1. Phase 2B 후속 보강 (domain reload, batch IPC 미기동 로그, latency 측정)
 2. Phase 1C 잔여 (release.yml, README)
+3. Write API 확장 Unity 실측 검증 (asset/prefab/package/material/animation/ui)

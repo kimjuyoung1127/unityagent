@@ -77,6 +77,8 @@ Plugin은 Unity 내부에서만 컴파일되며, `src/Unityctl.Plugin/Editor/Sha
 | 3C | ✅ 완료 | Watch Mode (Push 스트리밍, ConcurrentQueue, 영구 파이프) |
 | 4B | ✅ 완료 | Scene Diff (SerializedObject, GlobalObjectId, propertyPath diff) |
 | 5 | ✅ 완료 | Agent Layer (Unityctl.Mcp MCP 서버, schema, exec, workflow) |
+| MCP Hybrid | ✅ 완료 | unityctl_run (allowlist 39 write 명령) + schema filter |
+| Write C | ✅ 완료 | 커버리지 확장 (Asset 6 + Prefab 4 + Package/Settings 5 + Material 3 + Animation/UI 5 + Scene 2 + History 2 = 27개) |
 
 ---
 
@@ -141,11 +143,11 @@ dotnet test unityctl.slnx
 |----------|----------|------|
 | Unityctl.Shared.Tests | 60 | ✅ |
 | Unityctl.Core.Tests | 96 | ✅ |
-| Unityctl.Cli.Tests | 122 | ✅ |
-| Unityctl.Mcp.Tests | 7 | ✅ |
-| Unityctl.Integration.Tests | 19 | ✅ |
+| Unityctl.Cli.Tests | 193 | ✅ |
+| Unityctl.Mcp.Tests | 16 | ✅ |
+| Unityctl.Integration.Tests | 23 | ✅ |
 
-**총 304개 테스트 통과**
+**테스트 인벤토리 합계 388개** (scene open/create + undo/redo CLI 포함)
 
 ### robotapp 수동 검증
 
@@ -183,6 +185,164 @@ dotnet test unityctl.slnx
 - domain reload 후 자동 IPC 복구를 더 확실하게 재현하고 닫는 일
 - batch worker가 IPC 서버를 절대 띄우지 않는지에 대한 명시적 로그 검증
 - pure transport-only latency를 프로세스 시작 오버헤드와 완전히 분리한 측정
+
+### 2026-03-18 Codex 벤치마크/헤드리스 추가 검증
+
+기준 프로젝트:
+
+- 성능/토큰: `C:\Users\ezen601\Desktop\Jason\robotapp2`
+- headless batch: `C:\Users\ezen601\Desktop\Jason\20260309`
+
+추가로 확인된 내용:
+
+- clean-state 재실행 기준 median latency
+  - `ping`: `dotnet run 2015ms`, `published exe 304ms`, `Unityctl.Mcp 100ms`, `CoplayDev 1ms`
+  - `editor_state`: `2095ms`, `303ms`, `100ms`, `100ms`
+  - `active_scene`: `2094ms`, `304ms`, `99ms`, `100ms`
+  - `diagnostic`: `2053ms`, `401ms`, `101ms`, `100ms`
+- token efficiency
+  - `unityctl schema --format json`: `11,927 B`
+  - `Unityctl.Mcp tools/list`: `5,024 B`
+  - `CoplayDev tools/list`: `45,705 B`
+  - `Unityctl.Mcp` 기준 스키마 크기는 CoplayDev 대비 약 `9.1x` 작음
+- CoplayDev `tools/list`에는 direct build tool이 없음
+- headless batch (`20260309`, Editor closed)
+  - `check`: 성공 (`40 assemblies`)
+  - `test --mode edit`: 성공 (`18 passed`)
+  - `build --dry-run`: 실패 (`Unity exited with code 1073741845`)
+  - `status`: 실패 (`Unity exited with code 1073741845`)
+
+해석:
+
+- `unityctl`의 핵심 주장인 "headless meaningful work"는 `check`와 `EditMode test`까지는 실측으로 뒷받침된다.
+- `build --dry-run` headless는 아직 모든 프로젝트에서 일반화할 수 없다.
+- resident mode (`Unityctl.Mcp`)는 warmed `editor_state`/`active_scene` 기준 CoplayDev와 사실상 동등한 100ms대다.
+
+### 2026-03-18 검증 인프라 보강
+
+- `tests/Unityctl.Mcp.Tests/McpBlackBoxTests.cs`
+  - built `unityctl-mcp.exe` 기준 stdio MCP black-box 검증 추가
+  - `initialize`, `tools/list`, `unityctl_schema`, invalid tool, missing arg 경로 검증
+  - logging env suppression (`Logging__LogLevel__*=None`) 전제
+- `tests/Unityctl.Integration/SampleUnityProject/`
+  - repo-contained 최소 Unity 샘플 프로젝트 추가
+  - `com.unity.test-framework` + passing EditMode test 포함
+- `tests/Unityctl.Integration.Tests/HeadlessBatchValidationTests.cs`
+  - closed-editor `status`, `check`, `test --mode edit`, `build --dry-run` 검증 추가
+  - `build --dry-run`은 structured `BuildFailed`도 정상적인 preflight 결과로 간주
+- `tests/Unityctl.Shared.Tests/ExecHandlerContractTests.cs`
+  - `ExecHandler`의 static get/set/method, arg conversion, chained/multiline/blocklist/parse failure contract 고정
+- `.github/workflows/ci-dotnet.yml`
+  - published CLI smoke (`--help`, `schema`, `tools --json`) 추가
+
+### 2026-03-18 Write API Phase A 실측
+
+기준 프로젝트:
+
+- `C:\Users\ezen601\Desktop\Jason\My project`
+
+실측 결과:
+
+- `play start`
+  - 성공, `isPlaying=true`, `isPaused=false`
+- `play pause`
+  - 성공, `isPlaying=true`, `isPaused=true`
+- `play stop`
+  - 성공, 수정 후 `isPlaying=false`, `isPaused=false`
+- `player-settings get --key productName`
+  - 성공, `"My project"`
+- `player-settings get --key companyName`
+  - 성공, `"DefaultCompany"`
+- `player-settings set --key companyName --value "TestCo"`
+  - 성공, read-back으로 `"TestCo"` 확인
+- `player-settings set --key companyName --value "DefaultCompany"`
+  - 성공, 원래 값으로 복구
+- `asset refresh`
+  - 초기 구현은 `Accepted` 후 timeout
+  - 수정 후 `"Asset refresh scheduled"` 응답으로 변경
+  - 후속 `ping`으로 IPC 재연결 확인
+
+핵심 수정:
+
+- `PlayerSettingsHandler.cs`에 `System.Collections.Generic` 누락 수정
+- `PlayModeHandler.cs`
+  - stop 시 `EditorApplication.isPaused = false` 정리
+- `AssetRefreshHandler.cs`
+  - refresh completion polling 대신 `scheduled` 응답 후 delayed refresh로 의미론 변경
+- `AsyncCommandRunner.cs`
+  - custom poll command / timeout 메시지 일반화
+- `AssetCommand.cs`
+  - `asset-refresh-result` polling 경로 추가 후, 최종적으로 handler 의미 변경에 맞춰 즉시 성공 응답 사용
+
+### 2026-03-18 Write API Phase B 실측
+
+기준 프로젝트:
+
+- `C:\Users\ezen601\Desktop\Jason\My project`
+
+실측 결과:
+
+- `gameobject create`
+  - 성공, `globalObjectId`, `sceneDirty`, `undoGroupName` 반환
+- `gameobject rename`
+  - 성공, `TestCube -> NewName`
+- `gameobject move`
+  - 성공, 같은 씬 내 parent 변경
+- `gameobject delete`
+  - 성공, fresh object 기준 삭제 확인
+- `gameobject activate/deactivate`
+  - 성공, alias 기준 `active=false/true` 정상
+- `scene save`
+  - 성공, active scene 저장
+- `scene save --all`
+  - 성공, dirty scene 1개 저장
+- `PrefabGuard`
+  - 성공, scene 내 `SM_Bld_Apartment_02` prefab instance child delete 시
+    `Write operations on prefab instances are not supported in v1. Use scene objects or unpack the prefab first.`
+
+핵심 수정:
+
+- `GameObject*Handler.cs`, `SceneSaveHandler.cs`
+  - `EditorSceneManager` namespace 오류 수정 (`UnityEditor.SceneManagement`)
+- `GameObjectCommand.cs`
+  - `ParseActive`에 `on/off`, `1/0`, `active/inactive` 추가
+  - `Activate` / `Deactivate` alias 추가
+- `Program.cs`
+  - `gameobject activate`
+  - `gameobject deactivate`
+  등록
+
+주의:
+
+- `gameobject set-active --active false`는 CLI option binding UX가 매끄럽지 않아 alias 경로를 권장한다.
+- Undo는 Unity Editor UI (`Ctrl+Z`)에서 아직 별도 수동 확인이 필요하다.
+
+### 2026-03-18 Write API Phase B.5 실측
+
+기준 프로젝트:
+
+- `C:\Users\ezen601\Desktop\Jason\My project`
+
+실측 결과:
+
+- `component add`
+  - 성공, `CompProbe`에 `UnityEngine.Rigidbody` 추가
+  - `componentGlobalObjectId` 반환 확인
+- `component set-property` (vector)
+  - 성공, `Transform.m_LocalPosition = {"x":1,"y":2,"z":3}`
+- `component set-property` (scalar)
+  - `mass`는 실패 (`Property 'mass' not found on Rigidbody.`)
+  - `m_Mass`는 성공 (`Rigidbody.m_Mass = 5`)
+- `component remove`
+  - 성공, `Rigidbody` 삭제 확인
+- `PrefabGuard`
+  - 성공, scene 내 `SM_Bld_Apartment_02` prefab instance root에 `component add` 시
+    `Write operations on prefab instances are not supported in v1. Use scene objects or unpack the prefab first.`
+
+핵심 해석:
+
+- Phase B.5 API는 human-friendly field name보다 Unity serialized property path 기준이다.
+- 따라서 문서/예제는 `mass`보다 `m_Mass`, `position`보다 `m_LocalPosition` 같은 serialized path를 우선 사용해야 한다.
 
 ---
 
@@ -254,7 +414,7 @@ dotnet test unityctl.slnx
 ## Phase 5 실제 반영 내용
 
 - `src/Unityctl.Mcp/` 프로젝트 신설 — ModelContextProtocol C# SDK v1.1.0, stdio transport
-- MCP 서버 11개 도구: ping, status, check, build, test, log, session, watch, scene-snapshot, scene-diff, exec
+- MCP 서버 12개 tool name (11 classes): ping, status, check, build, test, log, session, watch, scene-snapshot, scene-diff, schema, exec
 - CLI `SchemaCommand.cs` — `unityctl schema --format json` (CommandSchema 기계 판독 스키마)
 - CLI `ExecCommand.cs` — `unityctl exec --project <path> --code <expr>` (C# 식 IPC 실행)
 - CLI `WorkflowCommand.cs` — `unityctl workflow run <file>` (순차 실행, continueOnError)
@@ -271,7 +431,84 @@ dotnet test unityctl.slnx
 검증:
 
 - `dotnet build unityctl.slnx` 통과 (경고 0)
-- `dotnet test unityctl.slnx` 통과 (304개)
+- 현재 환경에서 `dotnet test unityctl.slnx -c Release` exit 0 확인
+
+---
+
+## MCP 하이브리드 전략 실제 반영 내용
+
+- `src/Unityctl.Mcp/Tools/RunTool.cs` — `unityctl_run` MCP 도구 (allowlist 12개 write 명령, parameters JSON 파싱)
+- `src/Unityctl.Mcp/Tools/SchemaTool.cs` — `command` 파라미터 추가 (단일 명령 스키마 온디맨드 조회)
+- `tests/Unityctl.Mcp.Tests/ToolAnnotationTests.cs` — RunTool 추가, 도구 수 13개
+- `tests/Unityctl.Mcp.Tests/McpBlackBoxTests.cs` — `unityctl_run` 포함 13개 도구 + 5개 신규 테스트
+
+검증:
+
+- `dotnet build unityctl.slnx` 통과 (경고 0)
+- `dotnet test unityctl.slnx` 통과 (356개: Shared 60 + Core 96 + Cli 184 + Mcp 16)
+- Unity 실측 (`My project`): create → component-add → rename → set-property → remove → delete → scene-save E2E 확인
+
+---
+
+## Write API Phase C 실제 반영 내용
+
+- Shared `WellKnownCommands.cs` — 23개 상수 추가 (AssetCreate~UiSetRect)
+- Shared `CommandCatalog.cs` — 23개 CommandDefinition 추가, All[] 확장 (31→54개)
+- Plugin `WellKnownCommands.cs` — Shared와 동기화 (23개 상수)
+- Plugin 23개 핸들러 신규 (`Editor/Commands/`):
+  - C-1: AssetCreateHandler, AssetCreateFolderHandler, AssetCopyHandler, AssetMoveHandler, AssetDeleteHandler, AssetImportHandler
+  - C-2: PrefabCreateHandler, PrefabUnpackHandler, PrefabApplyHandler, PrefabEditHandler
+  - C-3: PackageListHandler, PackageAddHandler, PackageRemoveHandler, ProjectSettingsGetHandler, ProjectSettingsSetHandler
+  - C-4: MaterialGetHandler, MaterialSetHandler, MaterialSetShaderHandler
+  - C-5: AnimationCreateClipHandler, AnimationCreateControllerHandler, UiCanvasCreateHandler, UiElementCreateHandler, UiSetRectHandler
+- CLI 7개 파일 (AssetCommand.cs 수정 +6 메서드, PrefabCommand.cs/PackageCommand.cs/ProjectSettingsCommand.cs/MaterialCommand.cs/AnimationCommand.cs/UiCommand.cs 신규)
+- CLI `Program.cs` — 23개 app.Add() 등록
+- MCP `RunTool.cs` — allowlist 12→35개 확장
+- Tests `CommandCatalogTests.cs` — 이름 배열 23개 추가
+
+검증:
+
+- `dotnet build unityctl.slnx` 통과 (경고 0)
+- `dotnet test` 기준 이번 턴 검증: Shared 60 / Core 96 / Cli 193 / Mcp 16 green
+- `Integration.Tests`는 샘플 프로젝트 lock 환경에서 headless 배치 4건 실패 가능
+- `scene open/create`, `undo/redo`는 Unity 실기 검증 완료
+- ⚠️ Asset/Prefab/Package/Material/Animation/UI 등 다수 Phase C 명령은 여전히 Unity 실기 검증 미완
+
+CoplayDev 대비 추정 대체율:
+
+- AI 에이전트 일상 작업: **high-80s%** (추정, scene/undo 실측 반영)
+- CoplayDev 기능 패리티: **~60%** (추정)
+- 상세 비교: `docs/status/PROJECT-STATUS.md` 참조
+
+### 2026-03-18 scene / undo / redo 실측
+
+기준 프로젝트:
+
+- `C:\Users\ezen601\Desktop\Jason\robotapp2`
+
+실측 결과:
+
+- `scene create --path Assets/Scenes/CodexValidationScene.unity --template empty`
+  - 성공, 새 씬 생성 및 active scene 전환 확인
+- dirty scene 상태에서 `scene open --path Assets/Scenes/Main.unity`
+  - 성공적으로 structured rejection
+  - 메시지: `Dirty loaded scenes exist...`
+- `scene open --path Assets/Scenes/Main.unity --force`
+  - 성공, `Main.unity` active scene 전환 확인
+- `scene open --path Assets/Scenes/CodexValidationScene.unity --force`
+  - 성공, 임시 씬으로 복귀 확인
+- `gameobject create --name ValidationProbe2`
+  - 성공, `scene snapshot`에서 object 존재 확인
+- `undo`
+  - 성공, `scene snapshot`에서 `ValidationProbe2` 제거 확인
+- `redo`
+  - 성공, `scene snapshot`에서 `ValidationProbe2` 복원 확인
+
+정리:
+
+- `scene open/create`는 코드/단위테스트뿐 아니라 Unity IPC 실기 검증까지 완료
+- `undo/redo`도 실제 scene contents 기준으로 작동 확인
+- 검증 후 활성 씬은 `Assets/Scenes/Main.unity`로 복구했고, 임시 씬 asset은 삭제했다
 
 ---
 

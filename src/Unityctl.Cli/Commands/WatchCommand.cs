@@ -1,4 +1,6 @@
 using System.Text.Json;
+using Spectre.Console;
+using Unityctl.Cli.Output;
 using Unityctl.Core.Discovery;
 using Unityctl.Core.Platform;
 using Unityctl.Core.Transport;
@@ -116,18 +118,18 @@ public static class WatchCommand
         var ts = FormatTimestamp(evt.Timestamp);
         var tag = $"[{evt.Channel}/{evt.EventType}]";
         var message = ExtractMessage(evt);
-        var color = GetEventColor(evt);
 
-        if (!noColor)
+        if (noColor)
         {
-            try { Console.ForegroundColor = color; } catch { /* no console attached */ }
+            Console.WriteLine($"{ts} {tag,-30} {message}");
         }
-
-        Console.WriteLine($"{ts} {tag,-30} {message}");
-
-        if (!noColor)
+        else
         {
-            try { Console.ResetColor(); } catch { }
+            var color = GetSpectreColor(evt);
+            var console = ConsoleOutput.CreateOut();
+            var escapedTag = Markup.Escape(tag);
+            var escapedMsg = Markup.Escape(message);
+            console.MarkupLine($"[dim]{Markup.Escape(ts)}[/] [{color}]{escapedTag,-30}[/] {escapedMsg}");
         }
     }
 
@@ -156,6 +158,19 @@ public static class WatchCommand
             return node?.GetValue<string>() ?? evt.EventType;
 
         return evt.EventType;
+    }
+
+    private static string GetSpectreColor(EventEnvelope evt)
+    {
+        if (evt.Channel.StartsWith("_", StringComparison.Ordinal))
+            return "grey";
+
+        return evt.EventType switch
+        {
+            "Error" or "Exception" or "Assert" => "red",
+            "Warning" => "yellow",
+            _ => "white"
+        };
     }
 
     private static string FormatTimestamp(long unixMs)

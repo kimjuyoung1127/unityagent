@@ -1,4 +1,6 @@
 using System.Text.Json;
+using Spectre.Console;
+using Unityctl.Cli.Output;
 using Unityctl.Shared.Commands;
 
 namespace Unityctl.Cli.Commands;
@@ -19,20 +21,24 @@ public static class ToolsCommand
         }
         else
         {
-            Console.WriteLine($"unityctl v{Unityctl.Shared.Constants.Version} — Available tools ({tools.Length}):\n");
+            var console = ConsoleOutput.CreateOut();
+            var tree = new Tree(
+                new Markup($"[bold]unityctl[/] v{Markup.Escape(Unityctl.Shared.Constants.Version)} [dim]— {tools.Length} tools[/]"));
+
             foreach (var tool in tools)
             {
-                Console.WriteLine($"  {tool.Name,-24} {tool.Description}");
-                if (tool.Parameters.Length > 0)
+                var toolNode = tree.AddNode(
+                    new Markup($"[cyan]{Markup.Escape(tool.Name)}[/]  [dim]{Markup.Escape(tool.Description)}[/]"));
+
+                foreach (var p in tool.Parameters)
                 {
-                    foreach (var p in tool.Parameters)
-                    {
-                        var req = p.Required ? " (required)" : "";
-                        Console.WriteLine($"    --{p.Name,-20} {p.Type,-8} {p.Description}{req}");
-                    }
+                    var req = p.Required ? " [red](required)[/]" : "";
+                    toolNode.AddNode(
+                        new Markup($"[grey]--{Markup.Escape(p.Name)}[/]  [dim]{Markup.Escape(p.Type)}[/]  {Markup.Escape(p.Description)}{req}"));
                 }
-                Console.WriteLine();
             }
+
+            console.Write(tree);
         }
     }
 

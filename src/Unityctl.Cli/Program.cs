@@ -115,6 +115,25 @@ app.Add("gameobject rename", (string project, string id, string name, bool json 
 app.Add("scene save", (string project, string? scene = null, bool all = false, bool json = false) =>
     SceneCommand.Save(project, scene, all, json));
 
+app.Add("scene open", (
+        string project,
+        string path,
+        string mode = "single",
+        bool force = false,
+        bool saveCurrentModified = false,
+        bool json = false) =>
+    SceneCommand.Open(project, path, mode, force, saveCurrentModified, json));
+
+app.Add("scene create", (
+        string project,
+        string path,
+        string template = "default",
+        string mode = "single",
+        bool force = false,
+        bool saveCurrentModified = false,
+        bool json = false) =>
+    SceneCommand.Create(project, path, template, mode, force, saveCurrentModified, json));
+
 app.Add("component add", (string project, string id, string type, bool json = false) =>
     ComponentCommand.Add(project, id, type, json));
 
@@ -123,5 +142,87 @@ app.Add("component remove", (string project, string componentId, bool json = fal
 
 app.Add("component set-property", (string project, string componentId, string property, string value, bool json = false) =>
     ComponentCommand.SetProperty(project, componentId, property, value, json));
+
+// Phase C-1: Asset CRUD
+app.Add("asset create", (string project, string path, string type, bool json = false) =>
+    AssetCommand.Create(project, path, type, json));
+
+app.Add("asset create-folder", (string project, string parent, string name, bool json = false) =>
+    AssetCommand.CreateFolder(project, parent, name, json));
+
+app.Add("asset copy", (string project, string source, string destination, bool json = false) =>
+    AssetCommand.Copy(project, source, destination, json));
+
+app.Add("asset move", (string project, string source, string destination, bool json = false) =>
+    AssetCommand.Move(project, source, destination, json));
+
+app.Add("asset delete", (string project, string path, bool json = false) =>
+    AssetCommand.Delete(project, path, json));
+
+app.Add("asset import", (string project, string path, string? options = null, bool json = false) =>
+    AssetCommand.Import(project, path, options, json));
+
+// Phase C-2: Prefab
+app.Add("prefab create", (string project, string target, string path, bool json = false) =>
+    PrefabCommand.Create(project, target, path, json));
+
+app.Add("prefab unpack", (string project, string id, string mode = "outermost", bool json = false) =>
+    PrefabCommand.Unpack(project, id, mode, json));
+
+app.Add("prefab apply", (string project, string id, bool json = false) =>
+    PrefabCommand.Apply(project, id, json));
+
+app.Add("prefab edit", (string project, string path, string property, string value, string? childPath = null, bool json = false) =>
+    PrefabCommand.Edit(project, path, property, value, childPath, json));
+
+// Phase C-3: Package Manager
+app.Add("package list", (string project, bool json = false) =>
+    PackageCommand.List(project, json));
+
+app.Add("package add", (string project, string package_, bool json = false) =>
+    PackageCommand.Add(project, package_, json));
+
+app.Add("package remove", (string project, string package_, bool json = false) =>
+    PackageCommand.Remove(project, package_, json));
+
+// Phase C-3: Project Settings
+app.Add("project-settings get", (string project, string scope, string property, bool json = false) =>
+    ProjectSettingsCommand.Get(project, scope, property, json));
+
+app.Add("project-settings set", (string project, string scope, string property, string value, bool json = false) =>
+    ProjectSettingsCommand.Set(project, scope, property, value, json));
+
+// Phase C-4: Material/Shader
+app.Add("material get", (string project, string path, string? property = null, bool json = false) =>
+    MaterialCommand.Get(project, path, property, json));
+
+app.Add("material set", (string project, string path, string property, string propertyType, string value, bool json = false) =>
+    MaterialCommand.Set(project, path, property, propertyType, value, json));
+
+app.Add("material set-shader", (string project, string path, string shader, bool json = false) =>
+    MaterialCommand.SetShader(project, path, shader, json));
+
+// Phase C-5: Animation
+app.Add("animation create-clip", (string project, string path, bool json = false) =>
+    AnimationCommand.CreateClip(project, path, json));
+
+app.Add("animation create-controller", (string project, string path, bool json = false) =>
+    AnimationCommand.CreateController(project, path, json));
+
+// Phase C-5: UI
+app.Add("ui canvas-create", (string project, string name = "Canvas", string? renderMode = null, bool json = false) =>
+    UiCommand.CanvasCreate(project, name, renderMode, json));
+
+app.Add("ui element-create", (string project, string type, string? name = null, string? parent = null, bool json = false) =>
+    UiCommand.ElementCreate(project, type, name, parent, json));
+
+app.Add("ui set-rect", (string project, string id, string? anchoredPosition = null, string? sizeDelta = null, string? anchorMin = null, string? anchorMax = null, string? pivot = null, bool json = false) =>
+    UiCommand.SetRect(project, id, anchoredPosition, sizeDelta, anchorMin, anchorMax, pivot, json));
+
+app.Add("undo", (string project, bool json = false) =>
+    UndoCommand.Undo(project, json));
+
+app.Add("redo", (string project, bool json = false) =>
+    UndoCommand.Redo(project, json));
 
 app.Run(args);

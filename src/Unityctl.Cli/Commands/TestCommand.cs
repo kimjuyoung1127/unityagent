@@ -63,7 +63,8 @@ public static class TestCommand
                 project,
                 request,
                 async (proj, req, ct) => await executor.ExecuteAsync(proj, req, ct: ct),
-                timeout);
+                pollCommand: WellKnownCommands.TestResult,
+                timeoutSeconds: timeout);
         }
         else
         {

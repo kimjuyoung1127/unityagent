@@ -185,4 +185,27 @@ public class AsyncCommandRunnerTests
         Assert.Equal(WellKnownCommands.TestResult, polledCommand);
         Assert.Equal(requestId, polledRequestId);
     }
+
+    [CliTestFact]
+    public async Task PollRequest_UsesCustomPollCommand()
+    {
+        const string requestId = "asset1";
+        string? polledCommand = null;
+
+        await AsyncCommandRunner.ExecuteAsync(
+            "/project",
+            new CommandRequest { Command = "asset-refresh" },
+            (_, req, _) =>
+            {
+                if (req.Command == "asset-refresh")
+                    return Task.FromResult(AcceptedResponse(requestId));
+
+                polledCommand = req.Command;
+                return Task.FromResult(CompletedResponse());
+            },
+            pollCommand: WellKnownCommands.AssetRefreshResult,
+            timeoutSeconds: 30);
+
+        Assert.Equal(WellKnownCommands.AssetRefreshResult, polledCommand);
+    }
 }

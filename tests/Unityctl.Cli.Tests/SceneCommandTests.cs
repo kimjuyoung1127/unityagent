@@ -36,6 +36,54 @@ public sealed class SceneCommandTests
     }
 
     [CliTestFact]
+    public void CreateOpenRequest_HasCorrectCommandAndPath()
+    {
+        var request = SceneCommand.CreateOpenRequest("Assets/Scenes/Main.unity", mode: "additive");
+
+        Assert.Equal(WellKnownCommands.SceneOpen, request.Command);
+        Assert.Equal("Assets/Scenes/Main.unity", request.Parameters!["path"]?.GetValue<string>());
+        Assert.Equal("additive", request.Parameters["mode"]?.GetValue<string>());
+    }
+
+    [CliTestFact]
+    public void CreateOpenRequest_IncludesSafetyFlags_WhenEnabled()
+    {
+        var request = SceneCommand.CreateOpenRequest(
+            "Assets/Scenes/Main.unity",
+            force: true,
+            saveCurrentModified: true);
+
+        Assert.True(request.Parameters!["force"]?.GetValue<bool>());
+        Assert.True(request.Parameters["saveCurrentModified"]?.GetValue<bool>());
+    }
+
+    [CliTestFact]
+    public void CreateOpenRequest_EmptyPath_Throws()
+    {
+        Assert.Throws<ArgumentException>(() => SceneCommand.CreateOpenRequest(""));
+    }
+
+    [CliTestFact]
+    public void CreateCreateRequest_HasCorrectCommandAndParameters()
+    {
+        var request = SceneCommand.CreateCreateRequest(
+            "Assets/Scenes/NewScene.unity",
+            template: "empty",
+            mode: "additive");
+
+        Assert.Equal(WellKnownCommands.SceneCreate, request.Command);
+        Assert.Equal("Assets/Scenes/NewScene.unity", request.Parameters!["path"]?.GetValue<string>());
+        Assert.Equal("empty", request.Parameters["template"]?.GetValue<string>());
+        Assert.Equal("additive", request.Parameters["mode"]?.GetValue<string>());
+    }
+
+    [CliTestFact]
+    public void CreateCreateRequest_EmptyPath_Throws()
+    {
+        Assert.Throws<ArgumentException>(() => SceneCommand.CreateCreateRequest(""));
+    }
+
+    [CliTestFact]
     public void CreateDiffRequest_HasCorrectCommand()
     {
         var baseSnap = new JsonObject { ["timestamp"] = "2026-03-18T00:00:00Z" };

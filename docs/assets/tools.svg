@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="653.6" height="488">
+  <style>
+    .terminal { font-family: 'Cascadia Code', 'JetBrains Mono', 'Fira Code', monospace; font-size: 14px; }
+    .terminal span { white-space: pre; }
+  </style>
+  <rect width="100%" height="100%" rx="8" fill="#1e1e2e"/>
+  
+    <g>
+      <circle cx="20" cy="18" r="6" fill="#f38ba8"/>
+      <circle cx="38" cy="18" r="6" fill="#f9e2af"/>
+      <circle cx="56" cy="18" r="6" fill="#a6e3a1"/>
+      <text x="326.8" y="22" text-anchor="middle"
+            font-family="monospace" font-size="13" fill="#6c7086">unityctl tools (preview)</text>
+    </g>
+  <foreignObject x="16" y="52" width="621.6" height="436">
+    <div xmlns="http://www.w3.org/1999/xhtml" class="terminal" style="color: #cdd6f4; line-height: 20px; white-space: pre-wrap; word-break: break-all;">
+<b>unityctl</b> v0.2.0 — 18 tools
+├── <span style="color:#94e2d5">init</span>  Install the unityctl plugin into a Unity project
+│   ├── <span style="color:#585b70">--project</span>  string  Path to Unity project <span style="color:#f38ba8">(required)</span>
+│   └── <span style="color:#585b70">--source</span>  string  Custom local plugin source path
+├── <span style="color:#94e2d5">editor list</span>  Discover installed Unity editors
+│   └── <span style="color:#585b70">--json</span>  bool  Output as JSON
+├── <span style="color:#94e2d5">ping</span>  Verify unityctl connectivity to a Unity project
+│   ├── <span style="color:#585b70">--project</span>  string  Path to Unity project <span style="color:#f38ba8">(required)</span>
+│   └── <span style="color:#585b70">--json</span>  bool  Output as JSON
+├── <span style="color:#94e2d5">status</span>  Check Unity editor and project status
+│   ├── <span style="color:#585b70">--project</span>  string  Path to Unity project <span style="color:#f38ba8">(required)</span>
+│   ├── <span style="color:#585b70">--wait</span>  bool  Retry until editor responds
+│   └── <span style="color:#585b70">--json</span>  bool  Output as JSON
+├── <span style="color:#94e2d5">build</span>  Build a Unity project for a target platform
+│   ├── <span style="color:#585b70">--project</span>  string  Path to Unity project <span style="color:#f38ba8">(required)</span>
+│   ├── <span style="color:#585b70">--target</span>  string  Build target (StandaloneWindows64, OSX, Linux, 
+│   │   Android, iOS, WebGL)
+│   ├── <span style="color:#585b70">--output</span>  string  Output path for build artifacts
+│   ├── <span style="color:#585b70">--dryRun</span>  bool  Validate without building (preflight check)
+│   └── <span style="color:#585b70">--json</span>  bool  Output as JSON
+
+    </div>
+  </foreignObject>
+</svg>

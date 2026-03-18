@@ -1,4 +1,6 @@
 using System.Text.Json;
+using Spectre.Console;
+using Unityctl.Cli.Output;
 using Unityctl.Core.FlightRecorder;
 using Unityctl.Shared.Serialization;
 
@@ -77,26 +79,62 @@ public static class LogCommand
             return;
         }
 
+        var console = ConsoleOutput.CreateOut();
+        var table = new Table()
+            .Border(TableBorder.Rounded)
+            .AddColumn("Timestamp")
+            .AddColumn("Operation")
+            .AddColumn("Level")
+            .AddColumn("Code")
+            .AddColumn(new TableColumn("Duration").RightAligned())
+            .AddColumn("Project");
+
         foreach (var entry in entries)
-            PrintEntry(entry);
+            AddEntryRow(table, entry);
+
+        console.Write(table);
     }
 
     private static void PrintStats(FlightLog log)
     {
         var s = log.GetStats();
-        Console.WriteLine($"files:   {s.FileCount}");
-        Console.WriteLine($"entries: {s.EntryCount}");
-        Console.WriteLine($"size:    {s.TotalBytes:N0} bytes");
-        if (s.OldestDate != null) Console.WriteLine($"oldest:  {s.OldestDate}");
-        if (s.NewestDate != null) Console.WriteLine($"newest:  {s.NewestDate}");
+        var console = ConsoleOutput.CreateOut();
+
+        var grid = new Grid()
+            .AddColumn(new GridColumn().NoWrap())
+            .AddColumn();
+
+        grid.AddRow("[grey]files:[/]", $"{s.FileCount}");
+        grid.AddRow("[grey]entries:[/]", $"{s.EntryCount}");
+        grid.AddRow("[grey]size:[/]", $"{s.TotalBytes:N0} bytes");
+        if (s.OldestDate != null) grid.AddRow("[grey]oldest:[/]", s.OldestDate);
+        if (s.NewestDate != null) grid.AddRow("[grey]newest:[/]", s.NewestDate);
+
+        console.Write(grid);
     }
 
     private static void TailLog(FlightLog log, int initialLines)
     {
+        var console = ConsoleOutput.CreateOut();
+
         // Print initial entries in chronological order (oldest first)
         var entries = log.Query(new FlightQuery { Last = initialLines });
-        for (var i = entries.Count - 1; i >= 0; i--)
-            PrintEntry(entries[i]);
+        if (entries.Count > 0)
+        {
+            var table = new Table()
+                .Border(TableBorder.Rounded)
+                .AddColumn("Timestamp")
+                .AddColumn("Operation")
+                .AddColumn("Level")
+                .AddColumn("Code")
+                .AddColumn(new TableColumn("Duration").RightAligned())
+                .AddColumn("Project");
+
+            for (var i = entries.Count - 1; i >= 0; i--)
+                AddEntryRow(table, entries[i]);
+
+            console.Write(table);
+        }
 
         var lastTs = entries.Count > 0
             ? entries[0].Timestamp
@@ -135,6 +173,27 @@ public static class LogCommand
         {
             Console.CancelKeyPress -= OnCancel;
         }
+    }
+
+    private static void AddEntryRow(Table table, Unityctl.Shared.Protocol.FlightEntry entry)
+    {
+        var ts = DateTimeOffset.FromUnixTimeMilliseconds(entry.Timestamp)
+            .ToLocalTime()
+            .ToString("yyyy-MM-dd HH:mm:ss");
+        var levelColor = entry.Level switch
+        {
+            "error" => "red",
+            "warn" => "yellow",
+            _ => "green"
+        };
+
+        table.AddRow(
+            new Text(ts),
+            new Markup($"[cyan]{Markup.Escape(entry.Operation ?? "")}[/]"),
+            new Markup($"[{levelColor}]{Markup.Escape(entry.Level ?? "")}[/]"),
+            new Text($"{entry.StatusCode}"),
+            new Text($"{entry.DurationMs}ms"),
+            new Text(entry.Project ?? ""));
     }
 
     private static void PrintEntry(Unityctl.Shared.Protocol.FlightEntry entry)

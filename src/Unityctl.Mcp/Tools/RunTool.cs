@@ -1,0 +1,111 @@
+using System.ComponentModel;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using ModelContextProtocol.Server;
+using Unityctl.Core.Transport;
+using Unityctl.Shared.Protocol;
+using Unityctl.Shared.Serialization;
+
+namespace Unityctl.Mcp.Tools;
+
+[McpServerToolType]
+internal sealed class RunTool(CommandExecutor executor)
+{
+    private static readonly HashSet<string> Allowlist = new(StringComparer.OrdinalIgnoreCase)
+    {
+        WellKnownCommands.PlayMode,
+        WellKnownCommands.PlayerSettings,
+        WellKnownCommands.AssetRefresh,
+        WellKnownCommands.GameObjectCreate,
+        WellKnownCommands.GameObjectDelete,
+        WellKnownCommands.GameObjectSetActive,
+        WellKnownCommands.GameObjectMove,
+        WellKnownCommands.GameObjectRename,
+        WellKnownCommands.SceneSave,
+        WellKnownCommands.SceneOpen,
+        WellKnownCommands.SceneCreate,
+        WellKnownCommands.ComponentAdd,
+        WellKnownCommands.ComponentRemove,
+        WellKnownCommands.ComponentSetProperty,
+        WellKnownCommands.Undo,
+        WellKnownCommands.Redo,
+        // Phase C-1: Asset CRUD
+        WellKnownCommands.AssetCreate,
+        WellKnownCommands.AssetCreateFolder,
+        WellKnownCommands.AssetCopy,
+        WellKnownCommands.AssetMove,
+        WellKnownCommands.AssetDelete,
+        WellKnownCommands.AssetImport,
+        // Phase C-2: Prefab
+        WellKnownCommands.PrefabCreate,
+        WellKnownCommands.PrefabUnpack,
+        WellKnownCommands.PrefabApply,
+        WellKnownCommands.PrefabEdit,
+        // Phase C-3: Package Manager + Project Settings
+        WellKnownCommands.PackageList,
+        WellKnownCommands.PackageAdd,
+        WellKnownCommands.PackageRemove,
+        WellKnownCommands.ProjectSettingsGet,
+        WellKnownCommands.ProjectSettingsSet,
+        // Phase C-4: Material/Shader
+        WellKnownCommands.MaterialGet,
+        WellKnownCommands.MaterialSet,
+        WellKnownCommands.MaterialSetShader,
+        // Phase C-5: Animation + UI
+        WellKnownCommands.AnimationCreateClip,
+        WellKnownCommands.AnimationCreateController,
+        WellKnownCommands.UiCanvasCreate,
+        WellKnownCommands.UiElementCreate,
+        WellKnownCommands.UiSetRect
+    };
+
+    [McpServerTool(Name = "unityctl_run")]
+    [Description("Execute an allowlisted unityctl write/action command. Use unityctl_schema(command=...) to discover parameters.")]
+    public async Task<string> RunAsync(
+        [Description("Path to the Unity project directory")] string project,
+        [Description("Command name (e.g. gameobject-create, component-add, play-mode)")] string command,
+        [Description("Command parameters as a JSON object (excluding 'project')")] string? parameters = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(command))
+            return JsonSerializer.Serialize(
+                CommandResponse.Fail(StatusCode.InvalidParameters, "command must not be empty"),
+                UnityctlJsonContext.Default.CommandResponse);
+
+        if (!Allowlist.Contains(command))
+            return JsonSerializer.Serialize(
+                CommandResponse.Fail(
+                    StatusCode.CommandNotFound,
+                    $"Command '{command}' is not in the allowlist. Allowed: {string.Join(", ", Allowlist.Order())}"),
+                UnityctlJsonContext.Default.CommandResponse);
+
+        JsonObject? parsedParameters = null;
+        if (!string.IsNullOrWhiteSpace(parameters))
+        {
+            try
+            {
+                var node = JsonNode.Parse(parameters);
+                parsedParameters = node?.AsObject();
+                if (parsedParameters is null)
+                    return JsonSerializer.Serialize(
+                        CommandResponse.Fail(StatusCode.InvalidParameters, "parameters must be a JSON object"),
+                        UnityctlJsonContext.Default.CommandResponse);
+            }
+            catch (JsonException ex)
+            {
+                return JsonSerializer.Serialize(
+                    CommandResponse.Fail(StatusCode.InvalidParameters, $"Invalid JSON in parameters: {ex.Message}"),
+                    UnityctlJsonContext.Default.CommandResponse);
+            }
+        }
+
+        var request = new CommandRequest
+        {
+            Command = command,
+            Parameters = parsedParameters
+        };
+
+        var response = await executor.ExecuteAsync(project, request, ct: cancellationToken);
+        return JsonSerializer.Serialize(response, UnityctlJsonContext.Default.CommandResponse);
+    }
+}

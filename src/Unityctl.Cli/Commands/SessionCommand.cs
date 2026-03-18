@@ -1,4 +1,6 @@
 using System.Text.Json;
+using Spectre.Console;
+using Unityctl.Cli.Output;
 using Unityctl.Core.Sessions;
 using Unityctl.Shared.Protocol;
 using Unityctl.Shared.Serialization;
@@ -34,17 +36,40 @@ public static class SessionCommand
             return;
         }
 
-        Console.WriteLine($"{"ID",-10} {"STATE",-12} {"COMMAND",-15} {"PROJECT",-30} {"CREATED"}");
-        Console.WriteLine(new string('-', 90));
+        var console = ConsoleOutput.CreateOut();
+        var table = new Table()
+            .Border(TableBorder.Rounded)
+            .AddColumn("ID")
+            .AddColumn("State")
+            .AddColumn("Command")
+            .AddColumn("Project")
+            .AddColumn("Created");
+
         foreach (var s in sessions)
         {
             var shortId = s.Id.Length > 8 ? s.Id[..8] : s.Id;
             var project = s.ProjectPath.Length > 28
                 ? ".." + s.ProjectPath[^26..]
                 : s.ProjectPath;
-            Console.WriteLine(
-                $"{shortId,-10} {s.State,-12} {s.Command,-15} {project,-30} {s.CreatedAt}");
+            var stateColor = s.State switch
+            {
+                SessionState.Running => "green",
+                SessionState.Failed => "red",
+                SessionState.Completed => "cyan",
+                SessionState.Cancelled => "yellow",
+                SessionState.TimedOut => "red",
+                _ => "white"
+            };
+
+            table.AddRow(
+                new Text(shortId),
+                new Markup($"[{stateColor}]{s.State}[/]"),
+                new Text(s.Command),
+                new Text(project),
+                new Text(s.CreatedAt));
         }
+
+        console.Write(table);
     }
 
     internal static void StopCore(SessionManager manager, string id, bool json)
