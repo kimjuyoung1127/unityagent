@@ -314,11 +314,7 @@ namespace Unityctl.Plugin.Editor.Ipc
             _watchQueueCount = 0;
             _watchDroppedCount = 0;
 
-            // Subscribe to Unity events
-            _watchEventSource = new WatchEventSource(EnqueueWatchEvent, channels);
-            _watchEventSource.Subscribe();
-
-            // Send handshake response
+            // Send handshake response first (still on background thread — pipe write is fine)
             try
             {
                 var handshake = CommandResponse.Ok("watch session started");
@@ -327,20 +323,30 @@ namespace Unityctl.Plugin.Editor.Ipc
             catch (Exception ex)
             {
                 Debug.LogWarning($"[unityctl] Watch handshake failed: {ex.Message}");
-                _watchEventSource.Unsubscribe();
-                _watchEventSource = null;
                 return false;
             }
 
             _watchPipe = pipe;
             _watchActive = true;
 
+            // Start writer thread (reads from _watchQueue, writes to pipe)
             _watchThread = new Thread(() => WatchWriterLoop(pipe))
             {
                 Name = "unityctl-watch",
                 IsBackground = true
             };
             _watchThread.Start();
+
+            // Subscribe to Unity events on the MAIN thread
+            // (Application.logMessageReceivedThreaded requires main-thread subscription)
+            var capturedChannels = channels;
+            EditorApplication.delayCall += () =>
+            {
+                if (!_watchActive) return;
+                _watchEventSource = new WatchEventSource(EnqueueWatchEvent, capturedChannels);
+                _watchEventSource.Subscribe();
+            };
+
             return true;
         }
 
