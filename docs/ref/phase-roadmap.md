@@ -11,12 +11,15 @@
 |----------|-------------|-------|------|
 | Tools | CLI 커맨드 + `--json` | 0 ~ 2A+ | ✅ |
 | tools/list | `unityctl tools --json` | 2A+ | ✅ |
-| Resources | flight log, scene snapshot | 3B, 4B | 🔲 |
+| Resources | flight log, scene snapshot | 3B, 4B | 3B ✅ / 4B 🔲 |
 | Prompts | `docs/ref/ai-quickstart.md` | 1C | ✅ |
 | Tasks | Session Layer | 3A | 🔲 |
 | Streaming | Watch Mode | 3C | 🔲 |
+| Server | `Unityctl.Mcp` (C# SDK, stdio) | 5 | 🔲 |
+| Elicitation | Ghost Mode preflight 결과 | 4A | 🔲 |
 
-unityctl은 MCP를 대체하는 동시에, 필요하면 나중에 얇은 MCP bridge를 덧씌우는 방향을 유지합니다.
+unityctl은 MCP를 대체하는 동시에, Phase 5에서 네이티브 .NET MCP 서버를 직접 구현합니다.
+Python/TypeScript bridge가 아닌 `ModelContextProtocol` C# SDK 기반.
 
 ---
 
@@ -32,13 +35,20 @@ Phase 2A  — Foundation            ✅ 완료
 Phase 2A+ — Tools Metadata        ✅ 완료
 Phase 2B  — IPC Transport         ✅ 완료
 Phase 2C  — Async Commands        ✅ 완료
+Phase 3B  — Flight Recorder       ✅ 완료    ← 순서 변경: 3A보다 먼저
 Phase 3A  — Session Layer         🔲 미착수
-Phase 3B  — Flight Recorder       🔲 미착수
+Phase 4A  — Ghost Mode            🔲 미착수  ← 순서 변경: 3C보다 먼저
 Phase 3C  — Watch Mode            🔲 미착수
-Phase 4A  — Ghost Mode            🔲 미착수
 Phase 4B  — Scene Diff            🔲 미착수
 Phase 5   — Agent Layer           🔲 미착수
 ```
+
+### 실행 순서 변경 근거
+
+| 변경 | 이유 |
+|------|------|
+| 3B → 3A | Flight Recorder는 독립적이며, 이후 Phase 디버깅 인프라로 활용. Session은 FlightLog 위에 구축하는 게 자연스러움 |
+| 4A → 3C 앞으로 | Ghost Mode는 기존 BuildHandler 재활용이라 범위가 작고 빠름. Watch Mode는 IPC 스트리밍 프로토콜 확장이라 더 복잡 |
 
 ---
 
@@ -117,85 +127,496 @@ Phase 5   — Agent Layer           🔲 미착수
 
 ---
 
-## Phase 3A — Session Layer
+## Phase 3B — Flight Recorder
 
-MCP `Tasks` 대응용 내부 세션 추상화.
+상태: **구현 완료**
 
-방향:
+모든 커맨드 실행을 구조화된 NDJSON 로그로 남기는 단계.
+다른 Phase보다 먼저 구현하여 이후 디버깅 인프라로 활용.
 
-- `SessionManager`
-- `SessionState`
-- `SessionStore`
+### 산출물
 
-MCP Tasks는 experimental이므로 내부 세션 모델을 먼저 만들고, MCP 노출은 후행 매핑으로 둡니다.
+- `FlightLog` (기존 stub 확장)
+- `FlightEntry` (기존 7필드 → 15필드 확장)
+- CLI: `unityctl log`
+
+### FlightEntry 스키마
+
+기존 필드 (유지):
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `ts` | `long` (Unix ms) | 타임스탬프 |
+| `op` | `string` | 커맨드 이름 (build, test, check 등) |
+| `project` | `string?` | Unity 프로젝트 경로 |
+| `transport` | `string?` | "ipc" 또는 "batch" |
+| `statusCode` | `int` | StatusCode enum 값 |
+| `durationMs` | `long` | 소요 시간 |
+| `requestId` | `string?` | 상관 ID |
+
+신규 추가 필드:
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `level` | `string` | "info", "warn", "error", "fatal" |
+| `exitCode` | `int` | CLI 프로세스 종료 코드 |
+| `error` | `string?` | 예외 메시지 또는 에러 요약 |
+| `unityVersion` | `string?` | 예: "6000.0.64f1" |
+| `machine` | `string?` | `Environment.MachineName` (CI 환경 구분) |
+| `v` | `string` | CLI 버전 (`Constants.Version`) |
+| `args` | `string[]?` | 정제된 CLI 인자 (비밀 정보 제거) |
+| `sid` | `string?` | 세션 ID (Phase 3A 연동) |
+
+### 파일 전략
+
+- **포맷**: NDJSON (한 줄 = 한 JSON 레코드). grep/jq 친화, append-safe, 크래시 안전
+- **파일명**: `flight-YYYY-MM-DD.ndjson` (일별 파일)
+- **위치**: `~/.unityctl/logs/`
+- **보존**: 기본 30일 + 총 50MB 상한. 환경변수로 설정 가능
+  - `UNITYCTL_LOG_RETENTION_DAYS=30`
+  - `UNITYCTL_LOG_MAX_SIZE_MB=50`
+- **정리**: CLI 시작 시 1회 Prune (프로세스당 1회, static flag)
+
+### 동시 쓰기 안전
+
+- `File.AppendAllText` 사용 (NDJSON 한 줄 < 1KB, OS 레벨 쓰기 원자성 실질 보장)
+- **절대 CLI를 크래시시키지 않는다**: 모든 Record 호출을 try-catch로 감싸고 예외 삼킴
+
+### CLI 쿼리 커맨드
+
+```
+unityctl log                          # 최근 20개
+unityctl log --last 50                # 최근 50개
+unityctl log --tail                   # follow 모드 (FileSystemWatcher)
+unityctl log --op build               # 명령어 필터
+unityctl log --level error            # 심각도 필터
+unityctl log --since 2026-03-15       # 날짜 필터
+unityctl log --json                   # 원본 NDJSON 출력
+unityctl log --prune                  # 수동 정리
+unityctl log --stats                  # 디렉토리 크기, 항목 수, 기간
+```
+
+### 참고 소스
+
+- Java Flight Recorder (JFR) 이벤트 구조
+- OpenTelemetry Logs Data Model
+- Serilog 구조화 로깅 / RollingFile 패턴
+- egnyte/ax (구조화 JSON 로그 쿼리 CLI)
 
 ---
 
-## Phase 3B — Flight Recorder
+## Phase 3A — Session Layer
 
-모든 커맨드 실행을 구조화된 로그로 남기는 단계.
+MCP `Tasks` 대응용 내부 세션 추상화.
+Flight Recorder 위에 구축하여 커맨드 실행 추적.
 
-예상 산출물:
+### 상태머신
 
-- `FlightLog`
-- `FlightEntry`
-- `unityctl log`
+```text
+States:
+  Created    — 세션 할당, 실행 전
+  Running    — 커맨드 실행 중 (IPC 또는 batch)
+  Completed  — 성공 완료
+  Failed     — 에러 발생
+  Cancelled  — 사용자 취소 (Ctrl+C 또는 session stop)
+  TimedOut   — 타임아웃 초과 (Failed와 분리: 복구 액션이 다름)
+
+Transitions:
+  Created  → Running     (실행 시작)
+  Running  → Completed   (성공 응답)
+  Running  → Failed      (에러 응답 또는 transport 실패)
+  Running  → Cancelled   (사용자 취소)
+  Running  → TimedOut    (타임아웃 초과)
+  Created  → Cancelled   (시작 전 취소)
+```
+
+### MCP Tasks 매핑
+
+MCP Tasks는 draft 단계 (SEP-2229 Unsolicited Tasks, SEP-2268 Subtasks, SEP-2339 Task Continuity 진행 중).
+
+내부 모델 먼저 구축, MCP 노출은 Phase 5에서 후행 매핑:
+
+| unityctl | MCP Tasks |
+|----------|-----------|
+| `SessionId` | `taskId` |
+| `Running` | `working` |
+| `Completed` | `completed` |
+| `Failed` | `failed` |
+| `TimedOut` | `failed` (statusMessage로 구분) |
+| `Cancelled` | `cancelled` |
+| `CreatedAt`/`UpdatedAt` | ISO 8601 (MCP 동일) |
+
+SEP-2339 동향: 결과를 task 객체에 인라인하는 방향 → Session에 결과 페이로드를 처음부터 포함.
+
+### 저장소 전략
+
+- **활성 세션**: `~/.unityctl/sessions/active.json` (소규모, 상태 변경 시 덮어쓰기)
+- **완료 이력**: `~/.unityctl/sessions/history.ndjson` (append-only)
+- FlightLog과 동일한 NDJSON 패턴 재사용
+
+### 산출물
+
+```text
+Unityctl.Core/Session/
+  SessionState.cs       — enum (6개 상태)
+  Session.cs            — record: Id, State, ProjectPath, Command, Transport,
+                                   CreatedAt, UpdatedAt, PipeName, UnityPid,
+                                   Result?, ErrorMessage?, DurationMs
+  ISessionStore.cs      — interface: Save, Get, List, Delete, Cleanup
+  NdjsonSessionStore.cs — NDJSON 파일 구현
+  SessionManager.cs     — 라이프사이클 관리: Start → track → Complete/Fail/Cancel
+
+Unityctl.Cli/Commands/
+  SessionCommand.cs     — session start, session list, session stop
+```
+
+### 주의사항
+
+- **Stale 세션 감지**: CLI PID를 세션에 저장, `session list` 시 PID 생존 체크
+- **TTL 자동 정리**: 7일 보존, `session list` 호출 시 정리
+- **타임스탬프**: ISO 8601 (기존 `SessionInfo.CreatedAt`의 `long` 타입 마이그레이션 필요)
+- **MCP 직접 결합 금지**: draft가 안정될 때까지 내부 모델만 유지
+
+### 참고 소스
+
+- Kubernetes Jobs (TTL cleanup, finalizer, 상태 sub-object)
+- tmux 세션 관리 (서버-클라이언트, 분리 생존)
+- Docker 컨테이너 라이프사이클
+
+---
+
+## Phase 4A — Ghost Mode (Preflight Validation)
+
+빌드/테스트 전 사전 검증. 범용 dry-run이 아닌 preflight validation.
+기존 BuildHandler 코드를 재활용하므로 범위가 작고 빠름.
+
+### 구현 방식
+
+기존 `build` 커맨드에 `--dry-run` 파라미터 추가 (별도 커맨드 불필요).
+Handler에서 `dryRun` 감지 시 검증만 수행하고 `BuildPipeline.BuildPlayer()` 호출하지 않음.
+
+### 검증 항목 (3단계)
+
+**Error (차단 — 빌드 확실히 실패)**:
+
+| 검증 | Unity API |
+|------|-----------|
+| 빌드 타겟 문자열 유효성 | `ParseBuildTarget()` (기존 BuildHandler) |
+| 플랫폼 모듈 설치 여부 | `BuildPipeline.IsBuildTargetSupported()` |
+| 활성화된 씬 존재 여부 | `EditorBuildSettings.scenes` |
+| 씬 파일 디스크 존재 | `File.Exists(scenePath)` |
+| 스크립트 컴파일 에러 | `EditorUtility.scriptCompilationFailed` |
+| 출력 경로 쓰기 가능 | `Directory.Exists()` / try-create |
+
+**Warning (비차단 — 빌드 실패 가능 또는 예상치 못한 결과)**:
+
+| 검증 | Unity API |
+|------|-----------|
+| 활성 빌드 타겟 불일치 (플랫폼 스위치 발생) | `EditorUserBuildSettings.activeBuildTarget` |
+| Android SDK/NDK 경로 미발견 | `EditorPrefs.GetString("AndroidSdkRoot")` |
+| iOS 타겟인데 macOS 아님 | `RuntimeInformation` |
+| 현재 컴파일 중 (일시적) | `EditorApplication.isCompiling` |
+
+**Info (참고)**:
+
+| 검증 | 내용 |
+|------|------|
+| 활성화된 씬 목록 | 경로 나열 |
+| 스크립팅 백엔드 | Mono vs IL2CPP |
+| 스크립팅 define symbols | 현재 정의 |
+| 기본 출력 경로 | 타겟별 |
+| PlayerSettings 요약 | company, product, version |
+
+### 검증 불가능 항목 (명시)
+
+셰이더 컴파일, IL2CPP 코드 스트리핑, 에셋 임포트 (타겟별), 텍스처 압축 호환성,
+빌드 크기 추정, 네이티브 플러그인 호환성, Gradle/Xcode 생성 오류.
+이 항목들은 실제 빌드 없이는 검증 불가.
+
+### 출력 형식
+
+```json
+{
+  "statusCode": 0,
+  "success": true,
+  "message": "Preflight passed with 2 warnings",
+  "data": {
+    "dryRun": true,
+    "target": "Android",
+    "summary": { "errors": 0, "warnings": 2, "info": 5 },
+    "checks": [
+      { "category": "error", "check": "platform-module-installed", "passed": true, "message": "..." },
+      { "category": "warning", "check": "platform-switch-required", "passed": false, "message": "..." }
+    ]
+  }
+}
+```
+
+`success`는 error가 0이면 `true`. warning만으로는 `false`가 되지 않음 (terraform plan 모델).
+
+### 참고 소스
+
+- terraform plan (3-tier 출력, exit code 0/2)
+- ansible --check, npm publish --dry-run, rsync --dry-run
+- maxartz15/Validator, DarrenTsung/DTValidator (Unity 검증 프레임워크)
+- Unity `BuildPlayerWindow.cs` 소스 (내부 검증 로직)
 
 ---
 
 ## Phase 3C — Watch Mode
 
-Unity 이벤트를 스트림으로 전달하는 단계.
+Unity 이벤트를 Push 스트리밍으로 CLI에 실시간 전달.
+IPC 프로토콜 확장이 필요하므로 다른 Phase보다 복잡.
 
-예상 범위:
+### 아키텍처
 
-- console
-- hierarchy
-- compile
+**Push 모델 + 전용 영구 Named Pipe 연결.**
 
-공식 문서 기준 주의사항:
+```text
+CLI → Plugin:  subscribe 요청 {command: "watch", params: {channels: ["console","hierarchy","compilation"]}}
+Plugin → CLI:  CommandResponse (구독 시작 확인)
+Plugin → CLI:  EventEnvelope #1 (length-prefixed)
+Plugin → CLI:  EventEnvelope #2 ...
+Plugin → CLI:  ... (취소까지 지속)
+```
 
-- `Application.logMessageReceivedThreaded`는 병렬 호출 가능
-- `EditorApplication.hierarchyChanged`는 다음 editor update에서 발생
-- `CompilationPipeline` start/finish는 context로 매칭 가능
+기존 `[4-byte LE length][UTF-8 JSON]` 프레이밍 재사용.
+별도 파이프명 고려: `unityctl_{hash}_watch` (커맨드 트래픽과 격리).
 
----
+### 스레드 안전 전략
 
-## Phase 4A — Ghost Mode
+```text
+[Unity 콜백] --enqueue--> [ConcurrentQueue<EventEnvelope>] --dequeue--> [Pipe Writer 스레드]
+```
 
-범용 dry-run API가 아니라 preflight validation으로 정의하는 편이 안전합니다.
+| 이벤트 소스 | 스레드 | 전략 |
+|-------------|--------|------|
+| `Application.logMessageReceivedThreaded` | **아무 스레드** (병렬!) | `ConcurrentQueue.Enqueue()`만. Unity API 호출 금지 |
+| `EditorApplication.hierarchyChanged` | 메인 스레드 | Unity API 접근 안전. 결과를 enqueue |
+| `CompilationPipeline.*` | 메인 스레드 | Unity API 접근 안전. 결과를 enqueue |
 
-예상 범위:
+### 백프레셔 / 버퍼링
 
-- target/path/scene 검증
-- 위험 요소 보고
+- **Bounded queue**: 1000 이벤트 상한
+- **Drop 정책**: drop-oldest (Unity 콜백 차단 절대 금지)
+- **Overflow 알림**: `eventType: "_overflow"` 합성 이벤트 + 드롭 수
+- **하트비트**: 5~10초 간격 `_heartbeat` 이벤트 (stale 연결 감지)
+- **종료**: `_close` 이벤트 전송 후 파이프 닫기 (의도적 종료 vs 크래시 구분)
+
+### CLI UX
+
+```
+unityctl watch console              # 콘솔 로그만
+unityctl watch all                   # 모든 채널
+unityctl watch --format json         # NDJSON 출력 (jq 파이핑용)
+unityctl watch --no-color            # 색상 비활성화
+```
+
+출력 형식 (text):
+```
+[14:32:01.123] [console/log]     Player connected
+[14:32:01.456] [console/warning] Shader warning: ...
+[14:32:02.001] [console/error]   NullReferenceException: ...
+[14:32:10.234] [compilation]     Compilation started
+[14:32:15.567] [compilation]     Compilation finished (success, 5.3s)
+```
+
+### 리스크 메모
+
+| 리스크 | 완화 |
+|--------|------|
+| 도메인 리로드 → IPC 끊김 | CLI 자동 재연결 (지수 백오프). 갭 동안 이벤트 유실 감수 |
+| 재귀 로깅 (`logMessageReceivedThreaded` 내 예외) | `[ThreadStatic] static bool _inHandler` 재진입 가드 |
+| 메인 스레드 고갈 | `EditorApplication.update` 펌프에서 프레임당 최대 50개 처리 |
+| 파이프 writer 차단 (CLI가 느리게 읽을 때) | Writer 스레드만 차단, 30초 미응답 시 클라이언트 연결 해제 |
+| 다수 watcher 동시 연결 | `MaxServerInstances` 증가 또는 fan-out 패턴 |
+| Plugin 동기 I/O 전용 | Unity Mono 비동기 파이프 미검증 → 전용 백그라운드 스레드에서 동기 write |
+
+### 참고 소스
+
+- `kubectl logs -f`, `docker logs --follow`, `tail -f`, `dotnet watch`
+- 기존 `EventEnvelope` (`Shared/Protocol/`)
+- 기존 `ITransport.SubscribeAsync` (`IAsyncEnumerable<EventEnvelope>`, Phase 3C stub)
+- JetBrains Rider Unity 프로토콜 (영구 연결 스트리밍)
 
 ---
 
 ## Phase 4B — Scene Diff
 
-외부 YAML 파싱보다 Unity `SerializedObject` API 활용이 우선입니다.
+Unity 씬 상태 스냅샷 + propertyPath 기반 diff.
 
-예상 범위:
+### 기본 API
 
-- scene snapshot
-- propertyPath 기반 diff
-- multi-scene 고려
+`SerializedObject` + `SerializedProperty` 순회 (YAML 파싱 아닌 런타임 API 우선).
+
+- `new SerializedObject(obj)` → `GetIterator()` → `NextVisible(true)` 순회
+- 각 `SerializedProperty`에서 `propertyPath`, `propertyType`, 값 추출
+- `[SerializeReference]` 순환 참조 → `managedReferenceId` 추적으로 방지
+
+### 오브젝트 식별
+
+`GlobalObjectId` 사용 (에디터 세션 간 안정, 씬 내 유니크).
+- 형식: `GlobalObjectId_V1-{identifierType}-{assetGUID}-{localFileID}-{prefabInstance}`
+- **배치 API** `GetGlobalObjectIdsSlow(Object[], GlobalObjectId[])` 사용 (개별 호출보다 대폭 빠름)
+
+### 스냅샷 스키마
+
+```text
+SceneSnapshot
+├── timestamp: ISO 8601
+├── unityVersion: string
+├── sceneSetup[]: path, isLoaded, isActive  (멀티씬 설정)
+├── scenes[]
+│   ├── path, name, isDirty
+│   └── gameObjects[]
+│       ├── globalObjectId, name, activeSelf, layer, tag, scenePath
+│       └── components[]
+│           ├── globalObjectId, typeName, enabled
+│           └── properties: Dictionary<propertyPath, {type, value}>
+```
+
+### Diff 알고리즘
+
+```text
+씬 매칭 (by path)
+  → GameObject 매칭 (by GlobalObjectId) → ADDED / REMOVED / MODIFIED
+    → Component 매칭 (by GlobalObjectId) → ADDED / REMOVED
+      → Property Dict diff (by propertyPath) → ADDED / REMOVED / CHANGED
+```
+
+- **Float 비교**: epsilon 기반 (`1e-6` 기본, 설정 가능)
+- **배열**: 인덱스 기반 positional diff (Unity 직렬화 방식과 일치)
+- **Prefab override**: `PrefabUtility.GetPropertyModifications()` 활용하여 `isPrefabOverride` 플래그 가능
+
+### 성능
+
+- 5,000 GO 씬 (25,000 컴포넌트) → 2~10초 예상
+- 최적화: `NextVisible()` (프로퍼티 30~50% 감소), 배치 GlobalObjectId, `scene.isDirty` 필터
+- 대규모 씬 (100K+): 씬/경로 필터 제공, 진행 콜백
+
+### YAML 파싱 (후순위)
+
+Unity 커스텀 YAML (`!u!` 태그, `--- !u!<classID> &<fileID>`)은 표준 파서로 불가.
+오프라인/CI용 미래 과제로 남김. Phase 4B에서는 Editor API만 사용.
+
+### CLI 커맨드
+
+```
+unityctl scene snapshot --project <path> --json     # 스냅샷 캡처
+unityctl scene diff <snap1> <snap2> --json          # 두 스냅샷 비교
+unityctl scene diff --live --project <path>         # 현재 상태 vs 마지막 스냅샷
+```
+
+### 참고 소스
+
+- Unity `SerializedObject`/`SerializedProperty` API
+- Unity `GlobalObjectId` API
+- Unity `PrefabUtility` override 감지
+- Unity Smart Merge (UnityYAMLMerge, mergerules.txt)
+- andrewmichaeljones/SceneDiff (텍스트 기반 씬 캡처)
 
 ---
 
 ## Phase 5 — Agent Layer
 
-핵심 원칙:
+AI 에이전트가 unityctl을 도구로 활용하기 위한 외부 인터페이스.
+
+### 핵심 원칙
 
 - unityctl은 primitive 제공
 - orchestration은 AI agent에 위임
-- 필요 시 JSON workflow와 MCP bridge를 선택적으로 제공
+- 네이티브 .NET MCP 서버로 직접 구현 (bridge 아님)
+
+### 구현 우선순위
+
+**P0 — Schema Command (필수, 가장 먼저)**:
+
+```bash
+unityctl schema --format json
+```
+
+모든 커맨드, 파라미터, 타입, 설명의 기계 판독 가능 스키마 출력.
+에이전트와 MCP 브릿지가 도구 정의를 자동 생성하는 데 사용.
+
+**P1 — MCP Server (`Unityctl.Mcp` 프로젝트)**:
+
+```text
+src/Unityctl.Mcp/  (net10.0)
+  ├── NuGet: ModelContextProtocol (C# SDK v1.1.0)
+  ├── NuGet: Unityctl.Core 참조
+  ├── [McpServerTool] 래핑 (기존 커맨드별)
+  └── Stdio transport (Claude Code, VS Code, Cursor 호환)
+```
+
+- 기존 커맨드를 `[McpServerTool]` + `[Description]` 어트리뷰트로 래핑
+- DI로 Core 서비스 주입
+- dotnet tool NuGet 패키지로 배포 가능
+- 예상 규모: ~200줄 (얇은 래퍼)
+
+**P2 — `unityctl exec` (C# 식 직접 실행)**:
+
+```bash
+unityctl exec "EditorApplication.isPlaying = true"
+unityctl exec "AssetDatabase.Refresh()"
+```
+
+Unity Editor에 C# 식을 전송하여 IPC로 실행. 결과는 JSON 반환.
+에이전트의 "escape hatch" — 기존 커맨드로 커버 안 되는 모든 Unity API 접근 가능.
+
+**P3 — Workflow Runner (선택, 낮은 우선순위)**:
+
+```bash
+unityctl workflow run build-and-test.json
+```
+
+단순 순차 실행. `continueOnError`, `timeout` 정도만 지원.
+복잡한 오케스트레이션은 에이전트 책임.
+
+### 만들지 않을 것
+
+- 커스텀 오케스트레이션 엔진 (에이전트가 오케스트레이터)
+- 복잡한 워크플로 DSL (루프, 조건, 변수 — 에이전트 영역)
+- 에이전트별 플러그인 (Claude 플러그인, GPT 플러그인 — MCP가 범용 통합점)
+- 자연어 인터페이스 (에이전트가 NL 처리, unityctl은 typed tool)
+- 상태 관리 (호출당 stateless, 상태는 에이전트 컨텍스트에)
+
+### Agent-Friendly CLI 원칙
+
+| 원칙 | unityctl 현황 |
+|------|---------------|
+| 구조화 JSON 출력 | ✅ `--json` 전체 지원 |
+| 좁고 명확한 커맨드 | ✅ 커맨드별 단일 역할 |
+| 결정적 exit code | ✅ 0 = 성공, 1 = 실패 |
+| 멱등 동작 | ✅ 재실행 안전 |
+| 기계 판독 에러 | ✅ JSON 에러 출력 |
+| 대화형 프롬프트 없음 | ✅ stdin 미사용 |
+| 스키마 자동 발견 | 🔲 Phase 5 P0 |
+| 모든 작업에 timeout | ✅ `--timeout` 지원 |
+
+### 경쟁 분석
+
+| 프로젝트 | 특징 | unityctl 차별점 |
+|----------|------|-----------------|
+| UniCli | 80+ 커맨드, `eval`, Claude Code 플러그인 | batch mode + 에디터 디스커버리 + 크로스 플랫폼 |
+| Unity MCP (CoplayDev) | MCP bridge, batch execute | 네이티브 .NET MCP (Python bridge 불필요) |
+| UnityAgentClient | ACP (Zed) 기반 에디터 내 에이전트 | headless CI/CD 지원 + 외부 CLI |
+
+### 참고 소스
+
+- MCP Specification (2025-11-25)
+- MCP C# SDK (modelcontextprotocol/csharp-sdk v1.1.0)
+- Microsoft MCP .NET quickstart / samples
+- 2026 MCP 로드맵 (async tasks, server discovery, scalable transport)
+- UniCli, Unity MCP (CoplayDev), UnityAgentClient
 
 ---
 
 ## 다음 우선순위
 
 1. Phase 2B 후속 보강 (domain reload, batch IPC 미기동 로그, latency 측정)
-2. Phase 3A Session Layer
-3. Phase 1C release/README
+2. **Phase 3A — Session Layer** (3B 위에 구축)
+3. **Phase 4A — Ghost Mode** (기존 코드 재활용, 범위 작음)
+4. **Phase 3C — Watch Mode** (IPC 스트리밍 확장)
+5. **Phase 4B — Scene Diff** (SerializedObject 순회)
+6. **Phase 5 — Agent Layer** (MCP 서버 + schema + exec)
+7. Phase 1C 잔여 (release.yml, README)

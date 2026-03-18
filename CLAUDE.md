@@ -19,12 +19,13 @@ unityctl 작업 시작 시 가장 먼저 읽는 진입 문서입니다.
 - Phase 2A/2A+: Done (Foundation + Tools Metadata)
 - Phase 2B (IPC Transport): Done
 - Phase 2C (Async Commands): Done
-- Phase 3~5: Ready
+- Phase 3B (Flight Recorder): Done
+- Phase 3A, 3C, 4A, 4B, 5: Ready
 
 최근 확정 사항:
-- Phase 2C Async Commands 구현 완료 (2026-03-18): AsyncOperationRegistry (single-flight + age-check + TTL), TestResultCollector (ICallbacks + IErrorCallbacks, leaf-only), AsyncCommandRunner (delegate 주입 폴링), `--no-wait`/`--timeout`, PlayMode 경고, ACCEPTED [104] 출력, BatchEntry Accepted 대기. robotapp 404개 테스트 폴링 완료, 85개 dotnet 테스트 통과
+- Phase 3B Flight Recorder 구현 완료 (2026-03-18): FlightEntry (NDJSON 레코드 모델), FlightLog (append-only 기록기, 일별 파일, 예외 안전), `~/.unityctl/flight-log/` 저장. 85개 dotnet 테스트 통과
+- Phase 2C Async Commands 구현 완료 (2026-03-18)
 - Phase 2B IPC Transport 구현 완료 (2026-03-17)
-- 개발 문서 거버넌스 이식 (2026-03-17)
 
 ## 실행 규칙 (MUST)
 1. 기존 코드/타입/유틸 우선 재사용, 중복 구현 금지
@@ -91,9 +92,12 @@ unityctl.slnx
 | 2A/2A+ | ✅ 완료 | Foundation + Tools Metadata |
 | 2B | ✅ 완료 | IPC Transport (Named Pipe, probe-first) |
 | **2C** | ✅ 완료 | **Async Commands** (polling, single-flight, ACCEPTED) |
-| 3A~3C | 🔲 | Session, Flight Recorder, Watch Mode |
-| 4A~4B | 🔲 | Ghost Mode, Scene Diff |
-| 5 | 🔲 | Agent Layer (JSON 워크플로우) |
+| **3B** | ✅ 완료 | **Flight Recorder** (NDJSON 로깅, append-only, 예외 안전) |
+| **3A** | 🔲 | **Session Layer** (상태머신 6개, NDJSON 저장소, MCP Tasks 매핑) |
+| **4A** | 🔲 | **Ghost Mode** (--dry-run preflight, 3단계 검증) — 3C보다 먼저 |
+| **3C** | 🔲 | **Watch Mode** (Push 스트리밍, ConcurrentQueue, 영구 파이프) |
+| **4B** | 🔲 | **Scene Diff** (SerializedObject, GlobalObjectId, propertyPath diff) |
+| **5** | 🔲 | **Agent Layer** (Unityctl.Mcp 네이티브 서버, schema, exec) |
 
 ## Source of Truth 문서
 - 탐색 인덱스: `AGENTS.md`
@@ -118,7 +122,7 @@ unityctl.slnx
 7. 개발 진행 상세 이력: `docs/DEVELOPMENT.md`
 
 ## 테스트 표준
-- 총 85개 (Shared 19 + Core 30 + Cli 30 + Integration 6)
+- 총 116개 (Shared 19 + Core 47 + Cli 41 + Integration 9)
 - `dotnet test unityctl.slnx` green 필수
 - Integration.Tests는 AppLocker 감지 + graceful skip
 
@@ -126,5 +130,9 @@ unityctl.slnx
 1. 도메인 리로드 후 IPC 자동 복구를 더 강하게 재현/종결 검증
 2. batch worker에서 IPC 서버 미기동 로그 검증
 3. pure transport-only latency 측정
-4. Phase 3A — Session Layer 착수
-5. Phase 1C 잔여 (release.yml, README)
+4. Phase 3A — Session Layer (3B 위에 구축)
+5. Phase 4A — Ghost Mode (기존 코드 재활용, 범위 작음)
+6. Phase 3C — Watch Mode (IPC 스트리밍 확장)
+7. Phase 4B — Scene Diff
+8. Phase 5 — Agent Layer (MCP 서버 + schema + exec)
+9. Phase 1C 잔여 (release.yml, README)

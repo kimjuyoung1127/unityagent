@@ -23,3 +23,7 @@ Thumbs.db
 
 ## Temp
 *.tmp
+
+## Ralph workspace (반복 간 맥락 파일)
+ralph/workspace/*
+!ralph/workspace/.gitkeep

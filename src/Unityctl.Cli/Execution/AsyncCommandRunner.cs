@@ -1,4 +1,7 @@
+using System.Diagnostics;
 using System.Text.Json.Nodes;
+using Unityctl.Core.FlightRecorder;
+using Unityctl.Shared;
 using Unityctl.Shared.Protocol;
 
 namespace Unityctl.Cli.Execution;
@@ -27,10 +30,15 @@ public static class AsyncCommandRunner
         int timeoutSeconds = 300,
         CancellationToken ct = default)
     {
+        var sw = Stopwatch.StartNew();
         var response = await executor(project, request, ct);
 
         if (response.StatusCode != StatusCode.Accepted)
+        {
+            sw.Stop();
+            RecordEntry(project, request, response, sw.ElapsedMilliseconds);
             return response;
+        }
 
         // Extract requestId from response
         var requestId = response.RequestId;
@@ -65,19 +73,59 @@ public static class AsyncCommandRunner
                 var pollResponse = await executor(project, pollRequest, linkedCts.Token);
 
                 if (pollResponse.StatusCode != StatusCode.Accepted)
+                {
+                    sw.Stop();
+                    RecordEntry(project, request, pollResponse, sw.ElapsedMilliseconds);
                     return pollResponse;
+                }
 
                 await Task.Delay(PollIntervalMs, linkedCts.Token);
             }
         }
         catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested && !ct.IsCancellationRequested)
         {
-            return CommandResponse.Fail(
+            sw.Stop();
+            var timeoutResponse = CommandResponse.Fail(
                 StatusCode.TestFailed,
                 $"Test execution timed out after {timeoutSeconds}s");
+            RecordEntry(project, request, timeoutResponse, sw.ElapsedMilliseconds);
+            return timeoutResponse;
         }
 
         // Caller cancelled
         throw new OperationCanceledException(ct);
+    }
+
+    private static void RecordEntry(
+        string project,
+        CommandRequest request,
+        CommandResponse response,
+        long durationMs)
+    {
+        try
+        {
+            var entry = new FlightEntry
+            {
+                Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                Operation = request.Command,
+                Project = project,
+                StatusCode = (int)response.StatusCode,
+                DurationMs = durationMs,
+                RequestId = response.RequestId,
+                Level = response.Success ? "info" : "error",
+                ExitCode = response.Success ? 0 : 1,
+                Error = response.Success ? null : response.Message,
+                Machine = Environment.MachineName,
+                V = Constants.Version,
+                Args = request.Parameters?.ToJsonString(),
+                Sid = null
+            };
+
+            new FlightLog().Record(entry);
+        }
+        catch
+        {
+            // Flight recording should never crash the CLI
+        }
     }
 }

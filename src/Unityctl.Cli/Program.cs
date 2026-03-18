@@ -29,4 +29,15 @@ app.Add("check", (string project, string type = "compile", bool json = false) =>
 app.Add("tools", (bool json = false) =>
     ToolsCommand.Execute(json));
 
+app.Add("log", (
+        int? last = null,
+        bool tail = false,
+        string? op = null,
+        string? level = null,
+        string? since = null,
+        bool json = false,
+        bool prune = false,
+        bool stats = false) =>
+    LogCommand.Execute(last, tail, op, level, since, json, prune, stats));
+
 app.Run(args);

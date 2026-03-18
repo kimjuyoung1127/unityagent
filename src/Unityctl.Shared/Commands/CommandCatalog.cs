@@ -67,6 +67,19 @@ public static class CommandCatalog
         "meta",
         Parameter("json", "bool", "Output as machine-readable JSON", required: false));
 
+    public static readonly CommandDefinition Log = Define(
+        "log",
+        "Query and manage command execution logs",
+        "query",
+        Parameter("last", "int", "Show last N entries (default: 20)", required: false),
+        Parameter("tail", "bool", "Follow log file in real-time", required: false),
+        Parameter("op", "string", "Filter by operation (build, test, etc)", required: false),
+        Parameter("level", "string", "Filter by level (info, warn, error)", required: false),
+        Parameter("since", "string", "Filter since date/time (ISO 8601)", required: false),
+        Parameter("json", "bool", "Output as JSON", required: false),
+        Parameter("prune", "bool", "Apply retention policy (30 days / 50 MB)", required: false),
+        Parameter("stats", "bool", "Show log statistics", required: false));
+
     public static CommandDefinition[] All { get; } =
     [
         Init,
@@ -76,7 +89,8 @@ public static class CommandCatalog
         Build,
         Test,
         Check,
-        Tools
+        Tools,
+        Log
     ];
 
     private static CommandDefinition Define(

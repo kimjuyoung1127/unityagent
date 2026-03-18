@@ -99,6 +99,39 @@ public class CliIntegrationTests
         Assert.Contains("\"parameters\"", stdout);
     }
 
+    [Fact]
+    public async Task Log_Stats_ExitCode0()
+    {
+        if (!EnsureCanExecute()) return;
+
+        var (exitCode, stdout, stderr) = await RunCli("log", "--stats");
+        _output.WriteLine($"stdout: {stdout}");
+        _output.WriteLine($"stderr: {stderr}");
+        Assert.Equal(0, exitCode);
+        Assert.Contains("files:", stdout);
+        Assert.Contains("entries:", stdout);
+    }
+
+    [Fact]
+    public async Task Log_Json_ReturnsJsonArray()
+    {
+        if (!EnsureCanExecute()) return;
+
+        var (exitCode, stdout, _) = await RunCli("log", "--json");
+        Assert.Equal(0, exitCode);
+        Assert.StartsWith("[", stdout.Trim());
+    }
+
+    [Fact]
+    public async Task Log_Prune_ExitCode0()
+    {
+        if (!EnsureCanExecute()) return;
+
+        var (exitCode, stdout, _) = await RunCli("log", "--prune");
+        Assert.Equal(0, exitCode);
+        Assert.Contains("Pruned", stdout);
+    }
+
     /// <summary>
     /// Returns true if tests can proceed. If false, writes a diagnostic
     /// message explaining why the test is being skipped.
