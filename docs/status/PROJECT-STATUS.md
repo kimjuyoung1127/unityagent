@@ -9,10 +9,12 @@
 - **Phase 3B (Flight Recorder)**: 완료
 - **Phase 3A (Session Layer)**: 완료
 - **Phase 4A (Ghost Mode)**: 완료
-- **Phase 3C (Watch Mode)**: 완료 (watch 스트리밍 끊김 버그 수정 중)
+- **Phase 3C (Watch Mode)**: 완료
 - **Phase 4B (Scene Diff)**: 완료
 - **Phase 5 (Agent Layer)**: 완료
 - **Phase 1C (CI/CD)**: 완료
+
+**전체 Phase 완료. 304개 테스트 통과. 14개 기능 라이브 검증 완료.**
 
 ## 라이브 검증 (robotapp2, Unity 6000.0.64f1)
 
@@ -28,8 +30,8 @@
 | `schema --format json` | ✅ | 전체 커맨드 스키마 JSON 출력 |
 | `session list` | ✅ | 세션 추적 + 기록 정상 |
 | `log --stats` | ✅ | NDJSON 로그 기록/쿼리 정상 |
-| `scene snapshot` | ⚠️ | 동작하지만 Editor 2개 열려있을 때 라우팅 문제 |
-| `watch --channel console` | ❌ | 연결 후 즉시 끊김 (메인 스레드 구독 타이밍 버그, 수정 중) |
+| `scene snapshot` | ✅ | 동작 확인 (Editor 1개일 때 정상 라우팅) |
+| `watch --channel console` | ✅ | IPC 스트리밍 동작, heartbeat 수신 확인 |
 | `editor list` | ✅ | 설치된 에디터 자동 탐색 |
 | `init` | ✅ | manifest.json 플러그인 설치 |
 
@@ -37,7 +39,9 @@
 
 - `WatchEventSource`: `CompilationFinishedHandler` → `Action<object>` (Unity 6 API 변경)
 - `WatchEventSource`: `EditorApplication.CallbackFunction` → `Action`
+- `WatchEventSource.Subscribe`: 메인 스레드로 이동 (`EditorApplication.delayCall`)
 - `IpcServer`: `Environment.TickCount64` → `(long)Environment.TickCount` (Mono 호환)
+- `IpcServer.WatchWriterLoop`: 즉시 heartbeat 전송 (연결 안정성)
 
 ## 벤치마크 결과 (median, ms)
 
@@ -64,8 +68,10 @@ Unityctl.Mcp resident mode는 CoplayDev와 동등한 100ms대.
 | Unityctl.Mcp.Tests | 7 |
 | Unityctl.Integration.Tests | 19 |
 
-## 즉시 다음 작업
+## 후속 과제
 
-1. watch 스트리밍 끊김 버그 수정 (메인 스레드 Subscribe 타이밍)
-2. scene snapshot Editor 라우팅 문제 확인
-3. 벤치마크 리포트 커밋
+1. 벤치마크 리포트 커밋 (Codex 결과)
+2. macOS / Linux 실제 테스트
+3. GitHub Actions CI 실행 검증
+4. `dotnet tool` NuGet 패키지 배포
+5. exec 보안 강화 (허용 네임스페이스 제한 완화 UX)
