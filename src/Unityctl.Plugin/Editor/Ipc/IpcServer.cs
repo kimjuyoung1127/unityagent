@@ -378,7 +378,7 @@ namespace Unityctl.Plugin.Editor.Ipc
         /// </summary>
         private void WatchWriterLoop(NamedPipeServerStream pipe)
         {
-            long lastHeartbeatMs = Environment.TickCount64;
+            long lastHeartbeatMs = (long)Environment.TickCount;
 
             try
             {
@@ -395,7 +395,7 @@ namespace Unityctl.Plugin.Editor.Ipc
                         if (evt.channel == "_close") goto cleanup;
                     }
 
-                    long nowMs = Environment.TickCount64;
+                    long nowMs = (long)Environment.TickCount;
                     if (nowMs - lastHeartbeatMs >= HeartbeatIntervalMs)
                     {
                         WriteWatchEvent(pipe, EventEnvelope.Create("_heartbeat", "Ping"));

@@ -24,9 +24,9 @@ namespace Unityctl.Plugin.Editor.Commands
         private bool _subscribed;
 
         private Application.LogCallback _logCallback;
-        private EditorApplication.CallbackFunction _hierarchyCallback;
+        private Action _hierarchyCallback;
         private Action<object> _compilationStartedCallback;
-        private CompilationPipeline.CompilationFinishedHandler _compilationFinishedCallback;
+        private Action<object> _compilationFinishedCallback;
 
         public WatchEventSource(Action<EventEnvelope> enqueue, IEnumerable<string> channels)
         {
