@@ -12,9 +12,9 @@ namespace Unityctl.Mcp.Tools;
 internal sealed class ExecTool(CommandExecutor executor)
 {
     [McpServerTool(Name = "unityctl_exec")]
-    [Description("Execute a C# expression in the Unity Editor via reflection (trust the agent)")]
+    [Description("Execute C# expression in Unity Editor")]
     public async Task<string> ExecAsync(
-        [Description("Path to the Unity project directory")] string project,
+        [Description("Unity project path")] string project,
         [Description("C# expression to evaluate (e.g. 'EditorApplication.isPlaying = true')")] string code,
         CancellationToken cancellationToken = default)
     {

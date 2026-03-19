@@ -10,9 +10,10 @@ namespace Unityctl.Mcp.Tools;
 internal sealed class SchemaTool
 {
     [McpServerTool(Name = "unityctl_schema")]
-    [Description("Return the machine-readable JSON schema of unityctl commands (tool discovery). Optionally filter to a single command.")]
+    [Description("Command schema discovery (filter by command or category)")]
     public string Schema(
-        [Description("Filter to a specific command name (optional, returns all if omitted)")] string? command = null)
+        [Description("Filter to a specific command name")] string? command = null,
+        [Description("Filter by category: query, action, meta, setup, discovery")] string? category = null)
     {
         if (!string.IsNullOrWhiteSpace(command))
         {
@@ -27,6 +28,26 @@ internal sealed class SchemaTool
             }
 
             return JsonSerializer.Serialize(matched, UnityctlJsonContext.Default.CommandDefinition);
+        }
+
+        if (!string.IsNullOrWhiteSpace(category))
+        {
+            var filtered = CommandCatalog.All
+                .Where(c => c.Category.Equals(category, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+
+            if (filtered.Length == 0)
+            {
+                var errorObj = new System.Text.Json.Nodes.JsonObject { ["error"] = $"Unknown category: '{category}'. Valid: query, action, meta, setup, discovery" };
+                return errorObj.ToJsonString();
+            }
+
+            var filteredSchema = new CommandSchema
+            {
+                Version = Unityctl.Shared.Constants.Version,
+                Commands = filtered
+            };
+            return JsonSerializer.Serialize(filteredSchema, UnityctlJsonContext.Default.CommandSchema);
         }
 
         var schema = new CommandSchema

@@ -12,9 +12,9 @@ namespace Unityctl.Mcp.Tools;
 internal sealed class TestTool(CommandExecutor executor)
 {
     [McpServerTool(Name = "unityctl_test")]
-    [Description("Start Unity tests (EditMode or PlayMode) and wait for results")]
+    [Description("Run Unity tests (edit/play mode)")]
     public async Task<string> TestAsync(
-        [Description("Path to the Unity project directory")] string project,
+        [Description("Unity project path")] string project,
         [Description("Test mode: edit or play (default: edit)")] string mode = "edit",
         [Description("Test name filter expression")] string? filter = null,
         [Description("Wait for test completion (default: true)")] bool wait = true,

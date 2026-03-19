@@ -39,11 +39,12 @@ unityctl 작업 시작 시 가장 먼저 읽는 진입 문서입니다.
 - Physics Settings (physics get-settings/set-settings/get-collision-matrix/set-collision-matrix 4개 명령): Done
 - Editor Utility 확장 (editor pause/focus-gameview/focus-sceneview 3개 명령): Done
 - Script List (script list 1개 명령): Done
+- MCP Context Optimization (C1 QueryTool + C2 Schema Category + C3 Description 경량화): Done (33→12 MCP 도구)
 
 최근 확정 사항 (최신 3개만 표시, 전체 이력은 `docs/internal/DEVELOPMENT.md` "슬라이스 이력" 참조):
+- MCP Context Optimization (2026-03-19): C1 QueryTool (22개 read 도구 → 1개 통합), C2 Schema Category 필터, C3 Description 경량화. MCP 도구 33→12개 (64% 감소). Unity 실측 10/10 통과. 543개 dotnet 테스트.
 - NuGet v0.2.0 배포 완료 (2026-03-19): `dotnet tool install -g unityctl` + `unityctl-mcp`. GitHub Actions release.yml 자동 배포 파이프라인 (4플랫폼 빌드 + NuGet push + GitHub Release).
 - Editor Utility 확장 + Script List (2026-03-19): editor pause/focus-gameview/focus-sceneview + script list 4개 명령. Unity 실측 8/8 통과.
-- Physics Settings (2026-03-19): physics 4개 명령. DynamicsManager iterator + 32×32 collision matrix. Unity 실측 9/9 통과.
 
 ## 실행 규칙 (MUST)
 1. 기존 코드/타입/유틸 우선 재사용, 중복 구현 금지
@@ -59,7 +60,7 @@ unityctl 작업 시작 시 가장 먼저 읽는 진입 문서입니다.
 
 ```bash
 dotnet build unityctl.slnx                                          # 빌드
-dotnet test unityctl.slnx                                           # 전체 테스트 (491+개)
+dotnet test unityctl.slnx                                           # 전체 테스트 (520+개)
 dotnet test unityctl.slnx --filter "FullyQualifiedName!~Integration" # 유닛만
 dotnet run --project src/Unityctl.Cli -- <command> [options]         # CLI 실행
 ```
@@ -72,7 +73,7 @@ unityctl.slnx
 ├── src/Unityctl.Core      (net10.0)         비즈니스 로직 (transport, discovery, retry)
 ├── src/Unityctl.Cli       (net10.0)         얇은 CLI 셸 → Core에 위임
 ├── src/Unityctl.Plugin    (Unity UPM)       Editor 브릿지 (솔루션 빌드에 미포함)
-├── tests/*Tests           xUnit 테스트 (491+개)
+├── tests/*Tests           xUnit 테스트 (520+개)
 └── docs/                  ref/ + status/ + daily/ + weekly/
 ```
 
@@ -130,6 +131,7 @@ unityctl.slnx
 | **Physics Settings** | ✅ 완료 | **physics get-settings/set-settings/get-collision-matrix/set-collision-matrix** (4개 명령) |
 | **Editor Utility 확장** | ✅ 완료 | **editor pause/focus-gameview/focus-sceneview** (3개 명령) |
 | **Script List** | ✅ 완료 | **script list** (MonoScript 탐색, folder/filter/limit) |
+| **MCP Context Opt** | ✅ 완료 | **C1 QueryTool** (22 read→1 통합) + **C2 Schema Category** + **C3 Description 경량화** (33→12 MCP 도구) |
 
 ## Source of Truth 문서
 - 탐색 인덱스: `AGENTS.md`

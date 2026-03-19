@@ -92,9 +92,9 @@ internal sealed class RunTool(CommandExecutor executor)
     };
 
     [McpServerTool(Name = "unityctl_run")]
-    [Description("Execute an allowlisted unityctl write/action command. Use unityctl_schema(command=...) to discover parameters.")]
+    [Description("Execute write/action command (use unityctl_schema for params)")]
     public async Task<string> RunAsync(
-        [Description("Path to the Unity project directory")] string project,
+        [Description("Unity project path")] string project,
         [Description("Command name (e.g. gameobject-create, component-add, play-mode)")] string command,
         [Description("Command parameters as a JSON object (excluding 'project')")] string? parameters = null,
         CancellationToken cancellationToken = default)

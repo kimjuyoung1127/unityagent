@@ -12,7 +12,7 @@ namespace Unityctl.Mcp.Tools;
 internal sealed class LogTool
 {
     [McpServerTool(Name = "unityctl_log")]
-    [Description("Query recent command execution logs from the flight recorder")]
+    [Description("Query flight recorder logs")]
     public string Log(
         [Description("Number of recent entries to show (default: 20)")] int last = 20,
         [Description("Filter by operation name (build, test, check, etc.)")] string? op = null,

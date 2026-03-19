@@ -14,37 +14,16 @@ public class McpBlackBoxTests
     [
         "unityctl_build",
         "unityctl_check",
-        "unityctl_component_get",
         "unityctl_exec",
         "unityctl_log",
         "unityctl_ping",
+        "unityctl_query",
         "unityctl_run",
-        "unityctl_asset_find",
-        "unityctl_asset_get_labels",
-        "unityctl_asset_get_dependencies",
-        "unityctl_asset_get_info",
-        "unityctl_asset_reference_graph",
-        "unityctl_build_settings_get_scenes",
-        "unityctl_gameobject_find",
-        "unityctl_gameobject_get",
-        "unityctl_scene_hierarchy",
-        "unityctl_scene_snapshot",
-        "unityctl_scene_diff",
         "unityctl_schema",
-        "unityctl_screenshot_capture",
         "unityctl_session_list",
         "unityctl_status",
         "unityctl_test",
-        "unityctl_watch",
-        "unityctl_tag_list",
-        "unityctl_layer_list",
-        "unityctl_console_get_count",
-        "unityctl_define_symbols_get",
-        "unityctl_lighting_get_settings",
-        "unityctl_navmesh_get_settings",
-        "unityctl_physics_get_settings",
-        "unityctl_physics_get_collision_matrix",
-        "unityctl_script_list"
+        "unityctl_watch"
     ];
 
     [Fact]
@@ -82,6 +61,44 @@ public class McpBlackBoxTests
         Assert.False(string.IsNullOrWhiteSpace(payload));
         Assert.Contains("\"version\"", payload);
         Assert.Contains("\"commands\"", payload);
+    }
+
+    [Fact]
+    public async Task SchemaToolWithCategory_ReturnsFilteredResults()
+    {
+        await using var harness = await UnityctlMcpHarness.StartAsync();
+
+        var result = await harness.Client.CallToolAsync(
+            "unityctl_schema",
+            arguments: new Dictionary<string, object?> { ["category"] = "query" },
+            progress: null,
+            options: new RequestOptions(),
+            cancellationToken: CancellationToken.None);
+
+        Assert.NotEqual(true, result.IsError);
+        var payload = GetToolResultText(result);
+
+        Assert.Contains("\"version\"", payload);
+        Assert.Contains("\"commands\"", payload);
+        // query category should contain status, ping, etc.
+        Assert.Contains("status", payload);
+    }
+
+    [Fact]
+    public async Task SchemaToolWithUnknownCategory_ReturnsError()
+    {
+        await using var harness = await UnityctlMcpHarness.StartAsync();
+
+        var result = await harness.Client.CallToolAsync(
+            "unityctl_schema",
+            arguments: new Dictionary<string, object?> { ["category"] = "nonexistent" },
+            progress: null,
+            options: new RequestOptions(),
+            cancellationToken: CancellationToken.None);
+
+        var payload = GetToolResultText(result);
+        Assert.Contains("error", payload);
+        Assert.Contains("nonexistent", payload);
     }
 
     [Fact]
@@ -235,6 +252,68 @@ public class McpBlackBoxTests
         var payload = GetToolResultText(result);
         Assert.DoesNotContain("not in the allowlist", payload);
         Assert.DoesNotContain("Invalid JSON", payload);
+    }
+
+    [Fact]
+    public async Task QueryTool_DisallowedCommand_ReturnsError()
+    {
+        await using var harness = await UnityctlMcpHarness.StartAsync();
+
+        var result = await harness.Client.CallToolAsync(
+            "unityctl_query",
+            arguments: new Dictionary<string, object?>
+            {
+                ["project"] = "/fake/path",
+                ["command"] = "play-mode"
+            },
+            progress: null,
+            options: new RequestOptions(),
+            cancellationToken: CancellationToken.None);
+
+        var payload = GetToolResultText(result);
+        Assert.Contains("not in the query allowlist", payload);
+    }
+
+    [Fact]
+    public async Task QueryTool_AllowedCommand_PassesAllowlistCheck()
+    {
+        await using var harness = await UnityctlMcpHarness.StartAsync();
+
+        var result = await harness.Client.CallToolAsync(
+            "unityctl_query",
+            arguments: new Dictionary<string, object?>
+            {
+                ["project"] = "/fake/nonexistent/path",
+                ["command"] = "asset-find",
+                ["parameters"] = "{\"filter\":\"t:Scene\"}"
+            },
+            progress: null,
+            options: new RequestOptions(),
+            cancellationToken: CancellationToken.None);
+
+        var payload = GetToolResultText(result);
+        Assert.DoesNotContain("not in the query allowlist", payload);
+    }
+
+    [Fact]
+    public async Task QueryTool_InvalidParametersJson_ReturnsError()
+    {
+        await using var harness = await UnityctlMcpHarness.StartAsync();
+
+        var result = await harness.Client.CallToolAsync(
+            "unityctl_query",
+            arguments: new Dictionary<string, object?>
+            {
+                ["project"] = "/fake/path",
+                ["command"] = "asset-find",
+                ["parameters"] = "not-valid-json{"
+            },
+            progress: null,
+            options: new RequestOptions(),
+            cancellationToken: CancellationToken.None);
+
+        var payload = GetToolResultText(result);
+        Assert.Contains("Invalid JSON", payload);
     }
 
     private static async Task AssertMcpToolCallFailsAsync(Func<ValueTask<CallToolResult>> call)

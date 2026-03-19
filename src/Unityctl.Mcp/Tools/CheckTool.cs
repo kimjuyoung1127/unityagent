@@ -12,9 +12,9 @@ namespace Unityctl.Mcp.Tools;
 internal sealed class CheckTool(CommandExecutor executor)
 {
     [McpServerTool(Name = "unityctl_check")]
-    [Description("Check whether Unity scripts compiled successfully")]
+    [Description("Check script compilation status")]
     public async Task<string> CheckAsync(
-        [Description("Path to the Unity project directory")] string project,
+        [Description("Unity project path")] string project,
         [Description("Check type (default: compile)")] string type = "compile",
         CancellationToken cancellationToken = default)
     {

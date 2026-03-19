@@ -12,9 +12,9 @@ namespace Unityctl.Mcp.Tools;
 internal sealed class StatusTool(CommandExecutor executor)
 {
     [McpServerTool(Name = "unityctl_status")]
-    [Description("Check Unity editor and project compilation status")]
+    [Description("Editor and project compilation status")]
     public async Task<string> StatusAsync(
-        [Description("Path to the Unity project directory")] string project,
+        [Description("Unity project path")] string project,
         [Description("Retry until editor responds (default: false)")] bool wait = false,
         CancellationToken cancellationToken = default)
     {

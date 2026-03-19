@@ -16,9 +16,9 @@ internal sealed class WatchTool(CommandExecutor executor)
     /// for a fixed window and returns them as a JSON batch.
     /// </summary>
     [McpServerTool(Name = "unityctl_watch")]
-    [Description("Collect real-time events from a running Unity Editor for a fixed window (poll mode)")]
+    [Description("Collect real-time editor events (poll mode)")]
     public async Task<string> WatchAsync(
-        [Description("Path to the Unity project directory")] string project,
+        [Description("Unity project path")] string project,
         [Description("Event channel: console, hierarchy, compilation, all (default: all)")] string channel = "all",
         [Description("Collection window in seconds (default: 5)")] int windowSeconds = 5,
         CancellationToken cancellationToken = default)

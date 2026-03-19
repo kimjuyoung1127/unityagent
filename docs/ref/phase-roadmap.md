@@ -57,6 +57,7 @@ Tags & Layers + Editor Utility — tag/layer/console/define-symbols 10개 명령
 Lighting & NavMesh — lighting bake/cancel/clear/get-settings/set-settings + navmesh bake/clear/get-settings 8개 명령 ✅ 완료
 Physics Settings — physics get-settings/set-settings/get-collision-matrix/set-collision-matrix 4개 명령 ✅ 완료
 Editor Utility 확장 + Script List — editor pause/focus-gameview/focus-sceneview + script list 4개 명령 ✅ 완료
+MCP Context Optimization — C1 QueryTool + C2 Schema Category + C3 Description 경량화 (33→12 MCP 도구) ✅ 완료
 ```
 
 ### 실행 순서 변경 근거
@@ -92,6 +93,7 @@ Editor Utility 확장 + Script List — editor pause/focus-gameview/focus-scenev
 | **Lighting & NavMesh** | lighting 5개 + navmesh 3개 = 8개 명령, 비동기 bake 폴링 | [상세](../internal/phase-history.md#lighting--navmesh) |
 | **Physics Settings** | physics 4개 명령, DynamicsManager iterator, 32×32 collision matrix | [상세](../internal/phase-history.md#physics-settings) |
 | **Editor Utility 확장 + Script List** | editor pause/focus/script list 4개 명령, MonoScript 탐색 | [상세](../internal/phase-history.md#editor-utility-확장--script-list) |
+| **MCP Context Optimization** | C1 QueryTool (22 read 통합) + C2 Schema Category + C3 Description 경량화, 33→12 MCP 도구 | — |
 
 ---
 
@@ -125,7 +127,7 @@ Editor Utility 확장 + Script List — editor pause/focus-gameview/focus-scenev
 
 | 순위 | 항목 | 설명 | 효과 |
 |------|------|------|------|
-| **C1** | Read 도구 통합 (`unityctl_query`) | 24개 read 도구를 `unityctl_run` 패턴으로 통합 → MCP 도구 33→~12개 | 매 턴 tool 스키마 토큰 대폭 절감 |
-| **C2** | Schema 카테고리 필터 | `unityctl_schema(category: "asset")` — 카테고리별 부분 조회 | LLM이 127개 전체를 안 봐도 됨 |
-| **C3** | Tool Description 경량화 | 초기 스키마에는 한 줄 요약만, 상세는 `unityctl_schema`로 on-demand 조회 | 매 턴 수백 토큰 절감 |
+| ~~**C1**~~ | ~~Read 도구 통합 (`unityctl_query`)~~ | ✅ 완료. 22개 read 도구를 `unityctl_query` 1개로 통합 (allowlist 27개 read 명령) → MCP 도구 33→12개 | 매 턴 tool 스키마 토큰 대폭 절감 |
+| ~~**C2**~~ | ~~Schema 카테고리 필터~~ | ✅ 완료. `unityctl_schema(category: "query")` — 카테고리별 부분 조회 | LLM이 127개 전체를 안 봐도 됨 |
+| ~~**C3**~~ | ~~Tool Description 경량화~~ | ✅ 완료. 12개 도구 모두 40자 이내 한 줄 요약, 상세는 `unityctl_schema`로 on-demand | 매 턴 수백 토큰 절감 |
 | **C4** | Workflow 번들 도구 | 멀티스텝 패턴(찾기→수정)을 1회 호출로 묶는 `unityctl_quick` | 멀티턴→싱글턴, 총 API call 감소 |

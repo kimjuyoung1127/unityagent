@@ -12,9 +12,9 @@ namespace Unityctl.Mcp.Tools;
 internal sealed class BuildTool(CommandExecutor executor)
 {
     [McpServerTool(Name = "unityctl_build")]
-    [Description("Build a Unity project for a target platform")]
+    [Description("Build project for target platform")]
     public async Task<string> BuildAsync(
-        [Description("Path to the Unity project directory")] string project,
+        [Description("Unity project path")] string project,
         [Description("Build target (StandaloneWindows64, OSX, Linux, Android, iOS, WebGL)")] string target = "StandaloneWindows64",
         [Description("Output path for build artifacts")] string? output = null,
         [Description("Validate without building (preflight check only)")] bool dryRun = false,

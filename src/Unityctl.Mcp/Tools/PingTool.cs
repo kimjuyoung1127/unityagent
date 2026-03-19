@@ -11,9 +11,9 @@ namespace Unityctl.Mcp.Tools;
 internal sealed class PingTool(CommandExecutor executor)
 {
     [McpServerTool(Name = "unityctl_ping")]
-    [Description("Verify unityctl connectivity to a running Unity Editor")]
+    [Description("Check connectivity to Unity Editor")]
     public async Task<string> PingAsync(
-        [Description("Path to the Unity project directory")] string project,
+        [Description("Unity project path")] string project,
         CancellationToken cancellationToken)
     {
         var request = new CommandRequest { Command = WellKnownCommands.Ping };
