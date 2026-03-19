@@ -70,35 +70,35 @@ Editor Utility 확장 + Script List — editor pause/focus-gameview/focus-scenev
 
 ## 완료된 Phase 상세 (요약)
 
-> 각 Phase의 상세 설계/검증 기록은 [`docs/ref/phase-history.md`](phase-history.md)에 보존되어 있습니다.
+> 각 Phase의 상세 설계/검증 기록은 [`docs/internal/phase-history.md`](../internal/phase-history.md)에 보존되어 있습니다.
 
 | Phase | 요약 | 상세 |
 |-------|------|------|
-| **2B** IPC Transport | Named Pipe probe-first, 3 플랫폼, MessageFraming, CommandExecutor 자동 선택 | [상세](phase-history.md#phase-2b--ipc-transport) |
-| **2C** Async Commands | polling, single-flight, ACCEPTED [104], TestResultCollector | [상세](phase-history.md#phase-2c--async-commands) |
-| **3B** Flight Recorder | NDJSON 로깅, 15필드 FlightEntry, `unityctl log` CLI | [상세](phase-history.md#phase-3b--flight-recorder) |
-| **3A** Session Layer | 6개 상태머신, NDJSON 저장소, MCP Tasks 매핑 | [상세](phase-history.md#phase-3a--session-layer) |
-| **4A** Ghost Mode | `build --dry-run` preflight, 3단계 검증 (error/warning/info) | [상세](phase-history.md#phase-4a--ghost-mode-preflight-validation) |
-| **3C** Watch Mode | Push 스트리밍, ConcurrentQueue, 영구 Named Pipe | [상세](phase-history.md#phase-3c--watch-mode) |
-| **4B** Scene Diff | SerializedObject 순회, GlobalObjectId, propertyPath diff | [상세](phase-history.md#phase-4b--scene-diff) |
-| **5** Agent Layer | Unityctl.Mcp 네이티브 서버, schema, exec, workflow | [상세](phase-history.md#phase-5--agent-layer) |
-| **MCP Hybrid** | `unityctl_run` allowlist + `unityctl_schema(command=...)` | [상세](phase-history.md#mcp-하이브리드-전략) |
-| **Write C** | 28개 명령 (Asset/Prefab/Package/Material/Animation/UI) | [상세](phase-history.md#write-api-phase-c--커버리지-확장) |
-| **Read API P0** | asset/gameobject/component + hierarchy + build-settings + reference-graph | [상세](phase-history.md#read-api-p0-slice-1--assetgameobjectcomponent-query) |
-| **P3 Screenshot** | Camera.Render() → base64, Scene/Game View, PNG/JPG | [상세](phase-history.md#p3--screenshot--visual-feedback) |
-| **Build Profile** | build-profile list/get-active/set-active + build-target switch | [상세](phase-history.md#build-profile--build-target-control) |
-| **P2 Batch** | batch execute + Undo transaction rollback (IPC-only v1) | [상세](phase-history.md#p2--배치-편집트랜잭션) |
-| **Tags & Layers** | tag/layer/console/define-symbols 10개 명령 | [상세](phase-history.md#tags--layers--editor-utility) |
-| **Lighting & NavMesh** | lighting 5개 + navmesh 3개 = 8개 명령, 비동기 bake 폴링 | [상세](phase-history.md#lighting--navmesh) |
-| **Physics Settings** | physics 4개 명령, DynamicsManager iterator, 32×32 collision matrix | [상세](phase-history.md#physics-settings) |
-| **Editor Utility 확장 + Script List** | editor pause/focus/script list 4개 명령, MonoScript 탐색 | [상세](phase-history.md#editor-utility-확장--script-list) |
+| **2B** IPC Transport | Named Pipe probe-first, 3 플랫폼, MessageFraming, CommandExecutor 자동 선택 | [상세](../internal/phase-history.md#phase-2b--ipc-transport) |
+| **2C** Async Commands | polling, single-flight, ACCEPTED [104], TestResultCollector | [상세](../internal/phase-history.md#phase-2c--async-commands) |
+| **3B** Flight Recorder | NDJSON 로깅, 15필드 FlightEntry, `unityctl log` CLI | [상세](../internal/phase-history.md#phase-3b--flight-recorder) |
+| **3A** Session Layer | 6개 상태머신, NDJSON 저장소, MCP Tasks 매핑 | [상세](../internal/phase-history.md#phase-3a--session-layer) |
+| **4A** Ghost Mode | `build --dry-run` preflight, 3단계 검증 (error/warning/info) | [상세](../internal/phase-history.md#phase-4a--ghost-mode-preflight-validation) |
+| **3C** Watch Mode | Push 스트리밍, ConcurrentQueue, 영구 Named Pipe | [상세](../internal/phase-history.md#phase-3c--watch-mode) |
+| **4B** Scene Diff | SerializedObject 순회, GlobalObjectId, propertyPath diff | [상세](../internal/phase-history.md#phase-4b--scene-diff) |
+| **5** Agent Layer | Unityctl.Mcp 네이티브 서버, schema, exec, workflow | [상세](../internal/phase-history.md#phase-5--agent-layer) |
+| **MCP Hybrid** | `unityctl_run` allowlist + `unityctl_schema(command=...)` | [상세](../internal/phase-history.md#mcp-하이브리드-전략) |
+| **Write C** | 28개 명령 (Asset/Prefab/Package/Material/Animation/UI) | [상세](../internal/phase-history.md#write-api-phase-c--커버리지-확장) |
+| **Read API P0** | asset/gameobject/component + hierarchy + build-settings + reference-graph | [상세](../internal/phase-history.md#read-api-p0-slice-1--assetgameobjectcomponent-query) |
+| **P3 Screenshot** | Camera.Render() → base64, Scene/Game View, PNG/JPG | [상세](../internal/phase-history.md#p3--screenshot--visual-feedback) |
+| **Build Profile** | build-profile list/get-active/set-active + build-target switch | [상세](../internal/phase-history.md#build-profile--build-target-control) |
+| **P2 Batch** | batch execute + Undo transaction rollback (IPC-only v1) | [상세](../internal/phase-history.md#p2--배치-편집트랜잭션) |
+| **Tags & Layers** | tag/layer/console/define-symbols 10개 명령 | [상세](../internal/phase-history.md#tags--layers--editor-utility) |
+| **Lighting & NavMesh** | lighting 5개 + navmesh 3개 = 8개 명령, 비동기 bake 폴링 | [상세](../internal/phase-history.md#lighting--navmesh) |
+| **Physics Settings** | physics 4개 명령, DynamicsManager iterator, 32×32 collision matrix | [상세](../internal/phase-history.md#physics-settings) |
+| **Editor Utility 확장 + Script List** | editor pause/focus/script list 4개 명령, MonoScript 탐색 | [상세](../internal/phase-history.md#editor-utility-확장--script-list) |
 
 ---
 
 ## 다음 개발 로드맵 (경쟁 분석 기반)
 
 > 최종 업데이트: 2026-03-19
-> 출처: `research.md` — CoplayDev/unity-mcp, unity-editor-mcp 경쟁 분석
+> 출처: `docs/internal/root-research.md` — CoplayDev/unity-mcp, unity-editor-mcp 경쟁 분석
 
 | 우선순위 | 영역 | 핵심 내용 |
 |---------|------|----------|

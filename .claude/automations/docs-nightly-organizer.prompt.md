@@ -3,7 +3,7 @@
 
 목표:
 - `docs/ref/status/daily/weekly` 구조를 유지
-- `docs/daily/` 로그를 `docs/weekly/`로 롤업
+- `docs/internal/daily/` 로그를 `docs/internal/weekly/`로 롤업
 - 실행 로그를 `docs/status/NIGHTLY-RUN-LOG.md`에 append
 
 프로젝트 루트:
@@ -12,8 +12,8 @@
 입력:
 - `docs/ref/**`
 - `docs/status/**`
-- `docs/daily/**`
-- `docs/weekly/**`
+- `docs/internal/daily/**`
+- `docs/internal/weekly/**`
 
 출력:
 - `docs/status/NIGHTLY-RUN-LOG.md`
@@ -39,7 +39,7 @@
 6. lock 해제
 
 검증:
-- `docs/ref/`, `docs/status/`, `docs/weekly/`에 dangling markdown link가 없는지 점검
+- `docs/ref/`, `docs/status/`, `docs/internal/weekly/`에 dangling markdown link가 없는지 점검
 - 실패 시 `errors`에 누적
 
 DRY_RUN:

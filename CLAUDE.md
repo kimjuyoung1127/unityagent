@@ -40,7 +40,7 @@ unityctl 작업 시작 시 가장 먼저 읽는 진입 문서입니다.
 - Editor Utility 확장 (editor pause/focus-gameview/focus-sceneview 3개 명령): Done
 - Script List (script list 1개 명령): Done
 
-최근 확정 사항 (최신 3개만 표시, 전체 이력은 `docs/DEVELOPMENT.md` "슬라이스 이력" 참조):
+최근 확정 사항 (최신 3개만 표시, 전체 이력은 `docs/internal/DEVELOPMENT.md` "슬라이스 이력" 참조):
 - NuGet v0.2.0 배포 완료 (2026-03-19): `dotnet tool install -g unityctl` + `unityctl-mcp`. GitHub Actions release.yml 자동 배포 파이프라인 (4플랫폼 빌드 + NuGet push + GitHub Release).
 - Editor Utility 확장 + Script List (2026-03-19): editor pause/focus-gameview/focus-sceneview + script list 4개 명령. Unity 실측 8/8 통과.
 - Physics Settings (2026-03-19): physics 4개 명령. DynamicsManager iterator + 32×32 collision matrix. Unity 실측 9/9 통과.
@@ -142,7 +142,7 @@ unityctl.slnx
 - 사용자 가이드: `docs/ref/getting-started.md`
 - AI 빠른 시작: `docs/ref/ai-quickstart.md`
 - 용어 사전: `docs/ref/glossary.md`
-- 개발 진행 상세: `docs/DEVELOPMENT.md`
+- 개발 진행 상세: `docs/internal/DEVELOPMENT.md`
 
 ## Task Routing
 1. 아키텍처/설계 확인: `docs/ref/architecture-mermaid.md`
@@ -151,7 +151,7 @@ unityctl.slnx
 4. 코드 작성 전 패턴: `docs/ref/code-patterns.md`
 5. IPC Transport 설계: `docs/ref/phase-2b-plan.md`
 6. 전체 로드맵: `docs/ref/phase-roadmap.md`
-7. 개발 진행 상세 이력: `docs/DEVELOPMENT.md`
+7. 개발 진행 상세 이력: `docs/internal/DEVELOPMENT.md`
 
 ## 테스트 표준
 - `dotnet test unityctl.slnx` green 필수 (현재 수치는 `docs/status/PROJECT-STATUS.md` 참조)

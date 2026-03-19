@@ -61,7 +61,7 @@ Unity Editor 브릿지. `dotnet build` 불가 — Unity 내에서만 컴파일.
 - 정식 참조 문서는 `docs/ref/`에만 보관.
 - 운영 상태는 `docs/status/`에서만 관리.
 - 상태 변경 시 관련 downstream 문서도 같은 턴에 동기화.
-- 마일스톤 변경은 `docs/daily/MM-DD/` 로그 + 주간 롤업 반영.
+- 마일스톤 변경은 `docs/internal/daily/MM-DD/` 로그 + 주간 롤업 반영.
 
 ## Task Routing
 1. 아키텍처/설계 확인: `docs/ref/architecture-mermaid.md`

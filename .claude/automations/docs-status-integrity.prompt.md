@@ -10,8 +10,8 @@
 - Rule chain:
   - `AGENTS.md`
   - `CLAUDE.md`
-  - `docs/CLAUDE.md`
-  - `docs/status/CLAUDE.md`
+  - `docs/internal/CLAUDE.md`
+  - `docs/internal/status-CLAUDE.md`
 - Code truth:
   - `src/Unityctl.Shared/Commands/CommandCatalog.cs`
   - `src/Unityctl.Shared/Protocol/WellKnownCommands.cs`
@@ -24,8 +24,8 @@
   - `docs/ref/feature-summary-post.md`
   - `docs/ref/code-patterns.md`
 - Evidence docs:
-  - `docs/daily/**`
-  - `docs/weekly/**`
+  - `docs/internal/daily/**`
+  - `docs/internal/weekly/**`
 
 ## Lock
 - Lock file: `docs/status/.docs-status-integrity.lock`
@@ -64,7 +64,7 @@
 5. `UNTRACKED_FEATURE = command/tool families present in code but absent from status/ref docs`
 
 ### Step 4 - Evidence scan
-1. Read the latest folder under `docs/daily/`.
+1. Read the latest folder under `docs/internal/daily/`.
 2. Compare recent daily evidence to `PROJECT-STATUS.md`.
 3. Record `STATUS_MISMATCH` only when evidence conflicts with current status docs.
 

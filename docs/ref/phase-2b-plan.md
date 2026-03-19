@@ -190,6 +190,6 @@ built `unityctl.exe` 기준으로 warmed state에서는 `status`가 대략 `148~
 
 ## 관련 문서
 
-- `docs/DEVELOPMENT.md`
+- `docs/internal/DEVELOPMENT.md`
 - `docs/status/PROJECT-STATUS.md`
 - `docs/ref/phase-roadmap.md`
