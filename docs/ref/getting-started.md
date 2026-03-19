@@ -17,8 +17,8 @@ dotnet tool install -g unityctl-mcp   # MCP server (optional)
 ### Option B: Build from source
 
 ```bash
-git clone https://github.com/kimjuyoung1127/unityagent.git
-cd unityagent
+git clone https://github.com/kimjuyoung1127/unityctl.git
+cd unityctl
 dotnet build unityctl.slnx
 ```
 

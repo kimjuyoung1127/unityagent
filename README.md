@@ -2,7 +2,7 @@
 
 [![NuGet](https://img.shields.io/nuget/v/unityctl?label=unityctl)](https://www.nuget.org/packages/unityctl)
 [![NuGet](https://img.shields.io/nuget/v/unityctl-mcp?label=unityctl-mcp)](https://www.nuget.org/packages/unityctl-mcp)
-[![CI](https://github.com/kimjuyoung1127/unityagent/actions/workflows/ci-dotnet.yml/badge.svg)](https://github.com/kimjuyoung1127/unityagent/actions)
+[![CI](https://github.com/kimjuyoung1127/unityctl/actions/workflows/ci-dotnet.yml/badge.svg)](https://github.com/kimjuyoung1127/unityctl/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 A deterministic control plane for Unity Editor — built for AI agents and CI/CD pipelines.
