@@ -54,7 +54,7 @@ public static class InitCommand
             if (string.IsNullOrWhiteSpace(source))
                 Console.Error.WriteLine("Tip: run this from the unityctl workspace or pass --source <path-to-src/Unityctl.Plugin>.");
             else
-                Console.Error.WriteLine("Tip: --source must point at a local Unityctl.Plugin folder that contains package.json.");
+                Console.Error.WriteLine("Tip: --source may be either a local Unityctl.Plugin folder or a Unity UPM Git URL like https://github.com/<owner>/<repo>.git?path=/src/Unityctl.Plugin#<tag>.");
             Environment.Exit(1);
             return;
         }
@@ -66,7 +66,9 @@ public static class InitCommand
         File.WriteAllText(manifestPath, output);
 
         Console.WriteLine($"Added {packageName} to {manifestPath}");
-        Console.WriteLine($"Plugin source: {resolvedDirectory}");
+        Console.WriteLine($"Package source: {packageSource}");
+        if (!string.IsNullOrWhiteSpace(resolvedDirectory))
+            Console.WriteLine($"Resolved plugin directory: {resolvedDirectory}");
         Console.WriteLine("Unity will import the plugin on next Editor open or domain reload.");
     }
 }

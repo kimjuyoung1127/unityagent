@@ -14,6 +14,12 @@ dotnet tool install -g unityctl
 dotnet tool install -g unityctl-mcp   # MCP server (optional)
 ```
 
+Important today:
+
+- `dotnet tool install` gives you the CLI and MCP entrypoints.
+- `unityctl init` supports either a local `Unityctl.Plugin` source checkout or an explicit Git URL source. When `--source` is omitted, it still falls back to local workspace discovery.
+- GitHub Release CLI archives are framework-dependent publishes (`self-contained false`), not self-contained single-file binaries.
+
 ### Option B: Build from source
 
 ```bash
@@ -29,10 +35,10 @@ dotnet build unityctl.slnx
 ### 1. Install the plugin into your Unity project
 
 ```bash
-unityctl init --project /path/to/unity/project
+unityctl init --project /path/to/unity/project --source "https://github.com/kimjuyoung1127/unityctl.git?path=/src/Unityctl.Plugin#v0.2.0"
 ```
 
-This adds the `com.unityctl.bridge` UPM package to your project's `Packages/manifest.json`. Open (or restart) the Unity Editor after running this command.
+This adds the `com.unityctl.bridge` UPM package to your project's `Packages/manifest.json`. With a local path it writes a `file:` package reference; with a Git URL it writes the URL directly. If you run `unityctl` from a cloned `unityctl` workspace, `--source` can still be omitted because the CLI will try to find `src/Unityctl.Plugin` automatically. Open (or restart) the Unity Editor after running this command.
 
 ### 2. Verify connectivity
 
@@ -47,13 +53,15 @@ unityctl ping --project /path/to/project --json
 unityctl status --project /path/to/project --json
 ```
 
+For onboarding, prefer verifying with a running Editor. In batch fallback these commands can take tens of seconds or fail on a specific project, so they are not a guaranteed sub-minute first-success path yet.
+
 ### 3. Check compilation
 
 ```bash
 unityctl check --project /path/to/project --json
 ```
 
-Works headless — no Editor window required (uses batchmode fallback).
+Can run headless via batchmode fallback, but the result remains project-dependent and startup latency is much higher than IPC.
 
 ### 4. Run tests
 
@@ -85,6 +93,7 @@ unityctl doctor --project /path/to/project --json
 ```
 
 `doctor` checks IPC connectivity, plugin health, Editor log errors, and build state — useful as a first step when something fails.
+It also reports the configured plugin source and whether a Unity project lock is currently detected.
 
 ## Common Workflows
 

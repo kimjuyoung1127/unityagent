@@ -40,6 +40,107 @@
 
 ---
 
+## 2026-03-19 설치/온보딩 현실성 검증
+
+목표:
+
+- `플랫폼별 단일 바이너리 설치 + Unity 패키지 주입 + 1분 안 첫 성공` 문구가 현재 코드/배포 상태에서 사실인지 검증
+
+검증 기준:
+
+- stale local binary를 기준으로 삼지 않기 위해 아래 fresh artifact를 먼저 생성
+  - `dotnet build unityctl.slnx -c Release`
+  - `dotnet publish src/Unityctl.Cli/Unityctl.Cli.csproj -c Release --self-contained false -o artifacts/investigation/cli`
+  - `dotnet publish src/Unityctl.Mcp/Unityctl.Mcp.csproj -c Release --self-contained false -o artifacts/investigation/mcp`
+- source of truth 파일
+  - `src/Unityctl.Cli/Commands/InitCommand.cs`
+  - `src/Unityctl.Core/Setup/PluginSourceLocator.cs`
+  - `src/Unityctl.Core/Transport/CommandExecutor.cs`
+  - `src/Unityctl.Core/Transport/BatchTransport.cs`
+  - `.github/workflows/release.yml`
+  - `.github/workflows/ci-dotnet.yml`
+
+관찰:
+
+- 기존 `src/Unityctl.Cli/bin/Release/net10.0/unityctl.exe`는 stale binary였고, 최신 소스의 `doctor`, `asset find`, `scene hierarchy`를 포함하지 않았다.
+- fresh publish artifact는 최신 명령 집합을 포함했고, `schema --format json` / `tools --json` smoke가 통과했다.
+- `release.yml`과 `ci-dotnet.yml` 모두 CLI publish를 `--self-contained false`로 실행한다.
+- `InitCommand` + `PluginSourceLocator` 기준 현재 `init`는 원격 UPM bootstrap이 아니라 로컬 `src/Unityctl.Plugin`를 찾는 `file:` 기반 설치 경로다.
+- `C:\Users\gmdqn\robotapp\Packages\manifest.json`에는 아래 세 패키지가 함께 설치되어 있었다.
+  - `com.coplaydev.unity-mcp`
+  - `com.youngwoocho02.unity-cli-connector`
+  - `com.unityctl.bridge` = `file:C:/Users/gmdqn/unityagent/src/Unityctl.Plugin`
+
+실측 1: `robotapp` (Unity `6000.0.64f1`, Editor 실행 + IPC ready)
+
+- `init`
+  - 명령: `artifacts/investigation/cli/unityctl.exe init --project C:\Users\gmdqn\robotapp`
+  - 결과: `com.unityctl.bridge is already in manifest.json`
+- `doctor --json`
+  - 결과: `plugin.installed=true`, `ipc.connected=true`
+- `ping --json`
+  - 3회: `1108ms`, `999ms`, `856ms`
+  - median: `999ms`
+  - 응답: `pong`
+- `status --json`
+  - 3회: `939ms`, `1139ms`, `844ms`
+  - median: `939ms`
+  - 응답: `Ready`
+
+실측 2: repo-contained `tests/Unityctl.Integration/SampleUnityProject` (IPC 미준비 / batch fallback)
+
+- `doctor --json`
+  - 결과: `plugin.installed=true`, `ipc.connected=false`
+- `ping --json`
+  - 3회: `17618ms`, `11023ms`, `10866ms`
+  - median: `11023ms`
+  - 결과: 실패, `Unity exited with code 1073741845 but no response file was written.`
+- `status --json`
+  - 3회: `12540ms`, `20004ms`, `19700ms`
+  - median: `19700ms`
+  - 결과: 실패, `Unity exited with code 1 but no response file was written.`
+- `check --json`
+  - 결과: 실패, `Unity exited with code 1 but no response file was written.`
+
+판정:
+
+- `플랫폼별 단일 바이너리 설치`
+  - 현재 표현은 과장. GitHub Release assets는 framework-dependent publish 결과물이다.
+- `Unity 패키지 주입`
+  - 현재는 가능하지만 public-ready remote installer가 아니라 local source 기반 bootstrap이다.
+- `1분 안 첫 성공`
+  - running Editor + IPC ready에서는 가능성이 높지만, batch fallback 일반 경로에서는 보장 불가.
+- 최종 결론:
+  - **현재 그대로 가능 아님**
+  - **additive rollout으로 가능**
+  - 필요한 후속 축: remote/bootstrap 개선, self-contained 배포 검토, first-run 문구 재정의
+
+검증 후 문서 조치:
+
+- 공개 문서에서 `single binary`, `zero-dependency install`, `works without an Editor`, `unityctl init` 설명을 현재 구현 수준으로 낮춤
+- 상태 문서에 fresh artifact 기준, 배포 현실, 실측 결과를 반영
+
+리뷰 메모:
+
+- 전용 서브에이전트 도구는 현재 세션에 없어서 별도 도구 호출은 불가했다.
+- 대신 fresh artifact 기준 재측정 후, 공개 문서 문장을 다시 검색해 주장-근거 대응을 독립 체크리스트로 재검토했다.
+
+---
+
+### 후속 구현: explicit Git source 지원 (2026-03-19)
+
+- `PluginSourceLocator`가 명시적 Git URL source를 통과시키도록 확장했다.
+- 기본 동작은 그대로 유지했다:
+  - `--source` 생략 시 기존 workspace local path 탐색
+  - local path source는 기존처럼 `file:` dependency 기록
+- additive 경로:
+  - `unityctl init --source "https://github.com/kimjuyoung1127/unityctl.git?path=/src/Unityctl.Plugin#v0.2.0"`
+- 테스트 추가:
+  - `PluginSourceLocatorTests`에 Git URL 허용/비허용 케이스 추가
+  - `InitCommandTests`에 explicit Git source manifest 기록 검증 추가
+
+---
+
 ## 아키텍처
 
 ```text

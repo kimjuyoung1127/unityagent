@@ -55,6 +55,38 @@ public class PluginSourceLocatorTests
     }
 
     [Fact]
+    public void TryResolvePackageSource_AcceptsExplicitGitUrl()
+    {
+        const string gitUrl = "https://github.com/kimjuyoung1127/unityctl.git?path=/src/Unityctl.Plugin#v0.2.0";
+
+        var success = PluginSourceLocator.TryResolvePackageSource(
+            source: gitUrl,
+            packageSource: out var packageSource,
+            resolvedDirectory: out var resolvedDirectory,
+            error: out var error);
+
+        Assert.True(success, error);
+        Assert.Equal(gitUrl, packageSource);
+        Assert.Null(resolvedDirectory);
+    }
+
+    [Fact]
+    public void TryResolvePackageSource_RejectsRemoteUrlWithoutGitSuffix()
+    {
+        const string invalidUrl = "https://github.com/kimjuyoung1127/unityctl?path=/src/Unityctl.Plugin";
+
+        var success = PluginSourceLocator.TryResolvePackageSource(
+            source: invalidUrl,
+            packageSource: out _,
+            resolvedDirectory: out _,
+            error: out var error);
+
+        Assert.False(success);
+        Assert.NotNull(error);
+        Assert.Contains(".git", error);
+    }
+
+    [Fact]
     public void TryResolvePackageSource_RejectsDirectoriesWithoutPackageJson()
     {
         using var tempDirectory = new TemporaryDirectory();

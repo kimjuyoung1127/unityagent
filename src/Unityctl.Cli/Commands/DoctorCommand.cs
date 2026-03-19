@@ -21,8 +21,19 @@ public static class DoctorCommand
             var results = new JsonObject
             {
                 ["editor"] = new JsonObject { ["found"] = result.EditorFound, ["version"] = result.EditorVersion },
-                ["plugin"] = new JsonObject { ["installed"] = result.PluginInstalled },
+                ["plugin"] = new JsonObject
+                {
+                    ["installed"] = result.PluginInstalled,
+                    ["source"] = result.PluginSource,
+                    ["sourceKind"] = result.PluginSourceKind
+                },
                 ["ipc"] = new JsonObject { ["connected"] = result.IpcConnected, ["pipeName"] = result.PipeName },
+                ["projectLock"] = new JsonObject
+                {
+                    ["locked"] = result.ProjectLocked,
+                    ["lockFilePath"] = result.LockFilePath,
+                    ["lockFileExists"] = result.LockFileExists
+                },
                 ["buildState"] = new JsonObject
                 {
                     ["directory"] = result.BuildStateDirectory,
@@ -63,9 +74,18 @@ public static class DoctorCommand
             Console.WriteLine(result.PluginInstalled
                 ? $"  \u2713 Plugin installed: {Constants.PluginPackageName}"
                 : "  \u2717 Plugin not installed (run: unityctl init)");
+            if (result.PluginInstalled)
+            {
+                Console.WriteLine($"    Source kind: {result.PluginSourceKind ?? "unknown"}");
+                if (!string.IsNullOrWhiteSpace(result.PluginSource))
+                    Console.WriteLine($"    Source: {result.PluginSource}");
+            }
             Console.WriteLine(result.IpcConnected
                 ? $"  \u2713 IPC connected (pipe: {result.PipeName})"
                 : $"  \u2717 IPC probe failed (pipe: {result.PipeName})");
+            Console.WriteLine(result.ProjectLocked
+                ? $"  \u26a0 Project lock detected: {result.LockFilePath}"
+                : $"  \u2713 Project lock: not detected ({result.LockFilePath})");
             Console.WriteLine(result.BuildStateExists
                 ? $"  \u2713 Build transition state: {result.BuildStateCount} file(s), oldest {result.BuildStateOldestAgeMinutes:n1} min"
                 : $"  \u2713 Build transition state: none ({result.BuildStateDirectory})");
@@ -79,7 +99,7 @@ public static class DoctorCommand
             {
                 Console.WriteLine();
                 Console.WriteLine("  No compilation errors in Editor.log");
-                Console.WriteLine("  Possible causes: Unity not running, domain reload in progress, or Editor not focused");
+                Console.WriteLine("  Possible causes: Unity not running, domain reload in progress, project lock held by another process, or plugin import/compile not finished");
             }
 
             if (result.LogPath != null && result.HumanDiagnostics == null)
@@ -103,10 +123,29 @@ public static class DoctorCommand
 
         var manifestPath = Path.Combine(project, "Packages", "manifest.json");
         var pluginInstalled = false;
+        string? pluginSource = null;
+        string? pluginSourceKind = null;
         if (File.Exists(manifestPath))
         {
-            var manifest = File.ReadAllText(manifestPath);
-            pluginInstalled = manifest.Contains(Constants.PluginPackageName);
+            try
+            {
+                var manifest = JsonNode.Parse(File.ReadAllText(manifestPath));
+                var dependencies = manifest?["dependencies"]?.AsObject();
+                if (dependencies != null
+                    && dependencies.TryGetPropertyValue(Constants.PluginPackageName, out var sourceNode)
+                    && sourceNode is JsonValue sourceValue)
+                {
+                    pluginSource = sourceValue.TryGetValue<string>(out var stringValue)
+                        ? stringValue
+                        : sourceNode.ToJsonString();
+                    pluginInstalled = !string.IsNullOrWhiteSpace(pluginSource);
+                    pluginSourceKind = ClassifyPluginSource(pluginSource);
+                }
+            }
+            catch
+            {
+                // Keep doctor resilient even when manifest parsing fails.
+            }
         }
 
         var ipcConnected = false;
@@ -121,6 +160,9 @@ public static class DoctorCommand
             // Expected when editor is not reachable.
         }
 
+        var lockFilePath = Path.Combine(Path.GetFullPath(project), "Temp", "UnityLockfile");
+        var lockFileExists = File.Exists(lockFilePath);
+        var projectLocked = platform.IsProjectLocked(project);
         var buildState = GetBuildStateInfo(project);
 
         return new DoctorResult
@@ -129,7 +171,12 @@ public static class DoctorCommand
             EditorFound = editorFound,
             EditorVersion = editorVersion,
             PluginInstalled = pluginInstalled,
+            PluginSource = pluginSource,
+            PluginSourceKind = pluginSourceKind,
             IpcConnected = ipcConnected,
+            ProjectLocked = projectLocked,
+            LockFilePath = lockFilePath,
+            LockFileExists = lockFileExists,
             BuildStateDirectory = GetBuildStateDirectory(project),
             BuildStateExists = buildState.exists,
             BuildStateCount = buildState.count,
@@ -190,12 +237,18 @@ public static class DoctorCommand
                 ? $"    \u2713 Unity Editor found: {result.EditorVersion}"
                 : "    \u2717 Unity Editor not found",
             result.PluginInstalled
-                ? $"    \u2713 Plugin installed: {Constants.PluginPackageName}"
+                ? $"    \u2713 Plugin installed: {Constants.PluginPackageName} ({result.PluginSourceKind ?? "unknown"})"
                 : "    \u2717 Plugin not installed",
             result.IpcConnected
                 ? $"    \u2713 IPC connected ({result.PipeName})"
-                : $"    \u2717 IPC probe failed ({result.PipeName})"
+                : $"    \u2717 IPC probe failed ({result.PipeName})",
+            result.ProjectLocked
+                ? $"    \u26a0 Project lock detected ({result.LockFilePath})"
+                : $"    \u2713 Project lock not detected ({result.LockFilePath})"
         };
+
+        if (!string.IsNullOrWhiteSpace(result.PluginSource))
+            lines.Add($"    Plugin source: {result.PluginSource}");
 
         if (result.HumanDiagnostics != null)
         {
@@ -220,6 +273,24 @@ public static class DoctorCommand
             || message.Contains("reload", StringComparison.OrdinalIgnoreCase)
             || message.Contains("domain", StringComparison.OrdinalIgnoreCase);
     }
+
+    private static string? ClassifyPluginSource(string? pluginSource)
+    {
+        if (string.IsNullOrWhiteSpace(pluginSource))
+            return null;
+
+        if (pluginSource.StartsWith("file:", StringComparison.OrdinalIgnoreCase))
+            return "local-file";
+
+        if (pluginSource.Contains(".git", StringComparison.OrdinalIgnoreCase)
+            || pluginSource.StartsWith("git@", StringComparison.OrdinalIgnoreCase))
+            return "git";
+
+        if (pluginSource.Contains("://", StringComparison.Ordinal))
+            return "remote-url";
+
+        return "unknown";
+    }
 }
 
 internal sealed class DoctorResult
@@ -232,7 +303,17 @@ internal sealed class DoctorResult
 
     public bool PluginInstalled { get; set; }
 
+    public string? PluginSource { get; set; }
+
+    public string? PluginSourceKind { get; set; }
+
     public bool IpcConnected { get; set; }
+
+    public bool ProjectLocked { get; set; }
+
+    public string LockFilePath { get; set; } = string.Empty;
+
+    public bool LockFileExists { get; set; }
 
     public string? LogPath { get; set; }
 

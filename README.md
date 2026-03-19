@@ -9,7 +9,7 @@
 Let AI agents build scenes, manage assets, and run builds — without ever opening the GUI.
 
 ```
-108 CLI commands · 33 MCP tools · 538 tests · Windows / macOS / Linux
+108 CLI commands · 12 MCP tools · 538 tests · Windows / macOS / Linux
 ```
 
 <p align="center">
@@ -28,16 +28,16 @@ AI agents and CI pipelines need to interact with Unity, but:
 
 ## The Solution
 
-unityctl gives you a single binary that **auto-selects the fastest transport** — IPC when the Editor is running (~100ms), batch mode when it's not — and exposes **108 commands** covering the full Unity Editor surface.
+unityctl gives you a .NET CLI and framework-dependent release executable that **auto-select the fastest transport** — IPC when the Editor is running, batch mode when it's not — and exposes **108 commands** covering the Unity Editor surface.
 
-For AI agents, the companion MCP server compresses everything into **33 tools with a 5 KB schema** — 9x smaller than alternatives.
+For AI agents, the companion MCP server exposes **12 top-level tools** and keeps the detailed command schema on demand via `unityctl_schema`.
 
 | | unityctl | Existing Unity MCP |
 |---|---|---|
-| Headless CI/CD | `check` / `test` / `build --dry-run` without Editor | Editor must be open |
+| Headless CI/CD | Selected commands (`check` / `test` / `build --dry-run`) can run without an already-open Editor | Editor must be open |
 | Schema size | **5 KB** (9x smaller) | 45 KB+ |
-| Commands | **108** CLI commands, **64** write actions | ~34–200 tools |
-| Install | `dotnet tool install -g unityctl` | Node.js + npm + Plugin + port config |
+| Commands | **108** CLI commands, write actions via `unityctl_run` | ~34–200 tools |
+| Install | `dotnet tool install -g unityctl`, then `init` with either a local plugin path or an explicit Git URL | Node.js + npm + Plugin + port config |
 | Transport | IPC → batch **auto-fallback** | Single path (WebSocket/HTTP) |
 | Domain Reload | Named Pipe — **no disconnection** | WebSocket drops, reconnect needed |
 | CLI without MCP | Full CLI standalone, CI/CD ready | MCP client required |
@@ -55,11 +55,11 @@ For AI agents, the companion MCP server compresses everything into **33 tools wi
 
 Other Unity MCP servers focus on **tool count**. unityctl focuses on **reliability and efficiency**.
 
-- **Zero-dependency install** — one `dotnet tool install` command. No Node.js, no npm, no port configuration.
+- **Native .NET packaging** — the CLI and MCP ship as `dotnet tool` packages; no Node.js or npm bridge is required.
 - **No disconnection on Play Mode** — Named Pipe transport survives Unity's Domain Reload. WebSocket-based competitors lose connection every time you press Play.
-- **Works without an Editor** — the only Unity MCP tool that doubles as a standalone CLI. Run `check`, `test`, `build` in CI/CD pipelines with no Editor window.
-- **9x smaller schema** — 33 MCP tools instead of 200+. Every API call sends the full tool schema, so fewer tools = less cost per turn × every turn in the conversation.
-- **Built-in diagnostics** — `doctor` command auto-detects IPC failures, plugin issues, and Editor state. Competitors leave you guessing with "connection failed" errors.
+- **Batch fallback for selected workflows** — `check`, `test`, and `build --dry-run` can run without an already-open Editor, but startup latency and project-specific batch behavior still apply.
+- **Smaller top-level tool surface** — 12 MCP tools plus on-demand schema lookup keeps agent setup lighter than large multi-tool Unity servers.
+- **Built-in diagnostics** — `doctor` reports IPC state, project lock state, and the configured plugin source (`file:` vs Git URL) instead of stopping at a generic "connection failed" error.
 
 ---
 
@@ -73,11 +73,17 @@ dotnet tool install -g unityctl
 dotnet tool install -g unityctl-mcp
 ```
 
+Current bootstrap caveats:
+
+- `unityctl init` still defaults to local workspace discovery when `--source` is omitted.
+- `--source` now accepts either a local `Unityctl.Plugin` folder or a Unity-compatible Git URL such as `https://github.com/kimjuyoung1127/unityctl.git?path=/src/Unityctl.Plugin#v0.2.0`.
+- GitHub Release CLI archives are framework-dependent publishes today (`self-contained false`), not self-contained single-file builds.
+
 ## Quick Start
 
 ```bash
 # 1. Install the Editor plugin into your Unity project
-unityctl init --project /path/to/unity/project
+unityctl init --project /path/to/unity/project --source "https://github.com/kimjuyoung1127/unityctl.git?path=/src/Unityctl.Plugin#v0.2.0"
 
 # 2. Open the project in Unity Editor, then:
 unityctl ping --project /path/to/project --json     # verify connectivity
@@ -88,10 +94,14 @@ unityctl gameobject create --name "Player" --project /path/to/project
 unityctl component add --target "Player" --type "Rigidbody" --project /path/to/project
 unityctl scene save --project /path/to/project
 
-# 4. CI/CD — works headless, no Editor required
+# 4. CI/CD / batch fallback
 unityctl check --project /path/to/project --json     # compile check
 unityctl build --project /path/to/project --dry-run   # preflight validation
 ```
+
+If you're working from a cloned `unityctl` repo, you can still point `--source` at a local `src/Unityctl.Plugin` directory instead.
+
+`ping` and `status` are fastest when the Editor is already open and IPC is ready. In batch fallback they can take tens of seconds or fail on a given project, so they are not a reliable "under 1 minute" first-success guarantee yet.
 
 ### MCP Setup (AI Agents)
 
@@ -107,7 +117,7 @@ Add to your Claude Code / Cursor / VS Code MCP config:
 }
 ```
 
-The MCP server exposes 33 tools including `unityctl_run` (64 write commands), `unityctl_schema`, `unityctl_asset_find`, `unityctl_gameobject_find`, `unityctl_screenshot_capture`, and more.
+The MCP server currently exposes 12 top-level tools, including `unityctl_query`, `unityctl_run`, `unityctl_schema`, `unityctl_status`, and `unityctl_watch`.
 
 ---
 

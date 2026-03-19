@@ -84,4 +84,58 @@ public class DoctorCommandTests
             try { Directory.Delete(tempProject, recursive: true); } catch { }
         }
     }
+
+    [CliTestFact]
+    public void Diagnose_ReportsLocalPluginSource()
+    {
+        using var tempProject = new TemporaryProject("""
+{
+  "dependencies": {
+    "com.unityctl.bridge": "file:C:/repo/src/Unityctl.Plugin"
+  }
+}
+""");
+
+        var result = DoctorCommand.Diagnose(tempProject.Path);
+
+        Assert.True(result.PluginInstalled);
+        Assert.Equal("file:C:/repo/src/Unityctl.Plugin", result.PluginSource);
+        Assert.Equal("local-file", result.PluginSourceKind);
+        Assert.False(string.IsNullOrWhiteSpace(result.LockFilePath));
+    }
+
+    [CliTestFact]
+    public void Diagnose_ReportsGitPluginSource()
+    {
+        using var tempProject = new TemporaryProject("""
+{
+  "dependencies": {
+    "com.unityctl.bridge": "https://github.com/kimjuyoung1127/unityctl.git?path=/src/Unityctl.Plugin#v0.2.0"
+  }
+}
+""");
+
+        var result = DoctorCommand.Diagnose(tempProject.Path);
+
+        Assert.True(result.PluginInstalled);
+        Assert.Equal("git", result.PluginSourceKind);
+        Assert.Contains(".git", result.PluginSource);
+    }
+
+    private sealed class TemporaryProject : IDisposable
+    {
+        public TemporaryProject(string manifestJson)
+        {
+            Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "unityctl-doctor-test-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(System.IO.Path.Combine(Path, "Packages"));
+            File.WriteAllText(System.IO.Path.Combine(Path, "Packages", "manifest.json"), manifestJson);
+        }
+
+        public string Path { get; }
+
+        public void Dispose()
+        {
+            try { Directory.Delete(Path, recursive: true); } catch { }
+        }
+    }
 }

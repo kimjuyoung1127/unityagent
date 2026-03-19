@@ -3,6 +3,7 @@ namespace Unityctl.Core.Setup;
 public static class PluginSourceLocator
 {
     private const string PluginPackageFileName = "package.json";
+    private static readonly StringComparer PathComparer = StringComparer.OrdinalIgnoreCase;
 
     public static bool TryResolvePackageSource(
         string? source,
@@ -14,6 +15,9 @@ public static class PluginSourceLocator
         packageSource = string.Empty;
         resolvedDirectory = null;
         error = null;
+
+        if (!string.IsNullOrWhiteSpace(source) && LooksLikeRemotePackageSource(source.Trim()))
+            return TryResolveRemotePackageSource(source, out packageSource, out error);
 
         var candidateDirectory = string.IsNullOrWhiteSpace(source)
             ? TryResolveWorkspacePluginDirectory(baseDirectory)
@@ -61,7 +65,7 @@ public static class PluginSourceLocator
 
     private static IEnumerable<string> EnumerateSearchRoots(string? baseDirectory)
     {
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seen = new HashSet<string>(PathComparer);
 
         foreach (var candidate in new[] { baseDirectory, AppContext.BaseDirectory, Environment.CurrentDirectory })
         {
@@ -86,6 +90,77 @@ public static class PluginSourceLocator
         return string.IsNullOrWhiteSpace(baseDirectory)
             ? Path.GetFullPath(pathPart)
             : Path.GetFullPath(pathPart, Path.GetFullPath(baseDirectory));
+    }
+
+    private static bool TryResolveRemotePackageSource(
+        string? source,
+        out string packageSource,
+        out string? error)
+    {
+        packageSource = string.Empty;
+        error = null;
+
+        if (string.IsNullOrWhiteSpace(source))
+            return false;
+
+        var trimmed = source.Trim();
+        if (!LooksLikeRemotePackageSource(trimmed))
+            return false;
+
+        if (!TryValidateRemotePackageSource(trimmed, out error))
+            return false;
+
+        packageSource = trimmed;
+        return true;
+    }
+
+    private static bool LooksLikeRemotePackageSource(string source)
+    {
+        if (source.StartsWith("file:", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        return source.Contains("://", StringComparison.Ordinal) || source.StartsWith("git@", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool TryValidateRemotePackageSource(string source, out string? error)
+    {
+        error = null;
+
+        if (source.StartsWith("git@", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!source.Contains(":", StringComparison.Ordinal) || !source.Contains(".git", StringComparison.OrdinalIgnoreCase))
+            {
+                error = "Remote plugin source must be a valid Git URL. Expected '.git' and a repository path.";
+                return false;
+            }
+
+            return true;
+        }
+
+        if (!Uri.TryCreate(source, UriKind.Absolute, out var uri))
+        {
+            error = $"Plugin source '{source}' could not be parsed as a local path or Git URL.";
+            return false;
+        }
+
+        if (uri.Scheme.Equals(Uri.UriSchemeFile, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (!uri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+            && !uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+            && !uri.Scheme.Equals("ssh", StringComparison.OrdinalIgnoreCase))
+        {
+            error = $"Remote plugin source scheme '{uri.Scheme}' is not supported. Use https://, http://, ssh://, or a local path.";
+            return false;
+        }
+
+        if (!source.Contains(".git", StringComparison.OrdinalIgnoreCase))
+        {
+            error = "Remote plugin source must be a Unity-compatible Git URL ending in '.git' (query and fragment are allowed).";
+            return false;
+        }
+
+        return true;
     }
 
     private static bool TryValidatePluginDirectory(

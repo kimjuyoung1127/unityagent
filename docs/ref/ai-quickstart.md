@@ -11,13 +11,15 @@ dotnet tool install -g unityctl
 dotnet tool install -g unityctl-mcp   # MCP server
 ```
 
+Today the CLI packages do not bundle the Unity plugin directly. `unityctl init` supports either a local `Unityctl.Plugin` checkout or an explicit Git URL source.
+
 ### 2. Install plugin into Unity project
 
 ```bash
-unityctl init --project "/path/to/unity/project"
+unityctl init --project "/path/to/unity/project" --source "https://github.com/kimjuyoung1127/unityctl.git?path=/src/Unityctl.Plugin#v0.2.0"
 ```
 
-Open (or restart) the Unity Editor after running this command.
+Open (or restart) the Unity Editor after running this command. When you run from a cloned `unityctl` workspace, the CLI can usually find `src/Unityctl.Plugin` without `--source`; you can also pass that local path explicitly instead of a Git URL.
 
 ### 3. Verify
 
@@ -25,6 +27,8 @@ Open (or restart) the Unity Editor after running this command.
 unityctl editor list --json
 unityctl ping --project "/path/to/project" --json
 ```
+
+For first-run validation, prefer an already-open Editor. `ping` and `status` can fall back to batch mode, but that path is slower and may fail on a given project.
 
 ## MCP Server Setup
 
@@ -57,7 +61,7 @@ Add to your MCP settings:
 }
 ```
 
-The MCP server exposes 33 tools including `unityctl_run` (70 write commands via allowlist), `unityctl_schema`, `unityctl_asset_find`, `unityctl_gameobject_find`, `unityctl_screenshot_capture`, and more.
+The MCP server currently exposes 12 top-level tools, including `unityctl_query`, `unityctl_run`, `unityctl_schema`, `unityctl_status`, and `unityctl_watch`.
 
 ## Tool Discovery
 
@@ -187,8 +191,8 @@ The `unityctl_screenshot_capture` MCP tool captures Scene or Game View as base64
 
 unityctl auto-selects transport:
 
-1. **IPC** — connects to running Editor via Named Pipe (Windows) or Unix Domain Socket (macOS/Linux). ~100ms latency.
-2. **Batch** — spawns Unity in batchmode. 30-120s. Works headless in CI/CD.
+1. **IPC** — connects to a running Editor via Named Pipe (Windows) or Unix Domain Socket (macOS/Linux). This is the best path for first-run validation.
+2. **Batch** — spawns Unity in batchmode. It can support headless workflows, but startup latency is much higher and project-specific failures still happen in practice.
 
 ## Error Recovery
 
@@ -198,3 +202,5 @@ If a command fails:
 2. `unityctl ping --project <path>` — verify Editor connectivity
 3. `unityctl init --project <path>` — reinstall plugin if missing
 4. Check the Unity Editor log path shown in error output
+
+`doctor` now includes the configured plugin source (`file:` vs Git URL) and project lock detection, which helps separate install problems from IPC/domain reload problems.
