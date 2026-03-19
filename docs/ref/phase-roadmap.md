@@ -115,3 +115,17 @@ Editor Utility 확장 + Script List — editor pause/focus-gameview/focus-scenev
 - macOS / Linux 실제 테스트
 - `dotnet tool` NuGet 패키지 배포
 - write API property alias 개선
+
+---
+
+## MCP 컨텍스트 최적화 로드맵
+
+> 목표: 경쟁 도구(200+ tools) 대비 LLM 토큰 비용 우위를 극대화
+> 추가: 2026-03-19
+
+| 순위 | 항목 | 설명 | 효과 |
+|------|------|------|------|
+| **C1** | Read 도구 통합 (`unityctl_query`) | 24개 read 도구를 `unityctl_run` 패턴으로 통합 → MCP 도구 33→~12개 | 매 턴 tool 스키마 토큰 대폭 절감 |
+| **C2** | Schema 카테고리 필터 | `unityctl_schema(category: "asset")` — 카테고리별 부분 조회 | LLM이 127개 전체를 안 봐도 됨 |
+| **C3** | Tool Description 경량화 | 초기 스키마에는 한 줄 요약만, 상세는 `unityctl_schema`로 on-demand 조회 | 매 턴 수백 토큰 절감 |
+| **C4** | Workflow 번들 도구 | 멀티스텝 패턴(찾기→수정)을 1회 호출로 묶는 `unityctl_quick` | 멀티턴→싱글턴, 총 API call 감소 |
