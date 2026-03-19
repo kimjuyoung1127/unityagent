@@ -696,6 +696,18 @@ public static class CommandCatalog
         Parameter("timeout", "int", "Timeout in seconds (default: 300)", required: false),
         Parameter("json", "bool", "Output as JSON", required: false)).WithCli("script validate");
 
+    // Script Editing v2
+    public static readonly CommandDefinition ScriptPatchCmd = Define(
+        WellKnownCommands.ScriptPatch,
+        "Apply line-level patch to a C# script (insert/delete/replace lines)",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("path", "string", "Asset path of the script to patch", required: true),
+        Parameter("startLine", "int", "1-based line number to start patch at (0 = insert at beginning)", required: true),
+        Parameter("deleteCount", "int", "Number of lines to delete starting at startLine (default: 0)", required: false),
+        Parameter("insertContent", "string", "Content to insert at startLine (newline-separated, optional)", required: false),
+        Parameter("json", "bool", "Output as JSON", required: false)).WithCli("script patch");
+
     // P0 잔여분: Asset Labels
     public static readonly CommandDefinition AssetGetLabels = Define(
         WellKnownCommands.AssetGetLabels,
@@ -1034,6 +1046,7 @@ public static class CommandCatalog
         ScriptEditCmd,
         ScriptDeleteCmd,
         ScriptValidateCmd,
+        ScriptPatchCmd,
         // P0 잔여분: Asset Labels + Build Settings
         AssetGetLabels,
         AssetSetLabels,

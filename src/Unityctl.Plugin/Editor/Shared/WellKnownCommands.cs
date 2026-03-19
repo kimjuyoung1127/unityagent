@@ -97,6 +97,9 @@ namespace Unityctl.Plugin.Editor.Shared
         public const string ScriptValidate = "script-validate";
         public const string ScriptValidateResult = "script-validate-result";
 
+        // Script Editing v2
+        public const string ScriptPatch = "script-patch";
+
         // Script Editing 확장
         public const string ScriptList = "script-list";
 

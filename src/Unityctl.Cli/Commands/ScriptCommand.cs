@@ -171,6 +171,54 @@ public static class ScriptCommand
         };
     }
 
+    public static void Patch(string project, string path, int startLine, int deleteCount = 0, string? insertContent = null, string? insertContentFile = null, bool json = false)
+    {
+        if (insertContent != null && insertContentFile != null)
+        {
+            Console.Error.WriteLine("Error: --insert-content and --insert-content-file are mutually exclusive");
+            Environment.Exit(1);
+            return;
+        }
+
+        if (insertContentFile != null)
+        {
+            if (!File.Exists(insertContentFile))
+            {
+                Console.Error.WriteLine($"Error: insert content file not found: {insertContentFile}");
+                Environment.Exit(1);
+                return;
+            }
+            insertContent = File.ReadAllText(insertContentFile);
+        }
+
+        // CLI: unescape literal \n to real newlines for ergonomic multi-line input
+        if (insertContent != null)
+            insertContent = insertContent.Replace("\\n", "\n");
+
+        var request = CreatePatchRequest(path, startLine, deleteCount, insertContent);
+        CommandRunner.Execute(project, request, json);
+    }
+
+    internal static CommandRequest CreatePatchRequest(string path, int startLine, int deleteCount, string? insertContent)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            throw new ArgumentException("path must not be empty", nameof(path));
+
+        var parameters = new JsonObject
+        {
+            ["path"] = path,
+            ["startLine"] = startLine,
+            ["deleteCount"] = deleteCount
+        };
+        if (insertContent != null) parameters["insertContent"] = insertContent;
+
+        return new CommandRequest
+        {
+            Command = WellKnownCommands.ScriptPatch,
+            Parameters = parameters
+        };
+    }
+
     internal static CommandRequest CreateDeleteRequest(string path)
     {
         if (string.IsNullOrWhiteSpace(path))

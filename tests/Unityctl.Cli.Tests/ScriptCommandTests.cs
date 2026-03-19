@@ -75,4 +75,53 @@ public class ScriptCommandTests
         var request = ScriptCommand.CreateValidateRequest(null);
         Assert.Equal(WellKnownCommands.ScriptValidate, request.Command);
     }
+
+    [Fact]
+    public void CreatePatchRequest_HasCorrectCommand()
+    {
+        var request = ScriptCommand.CreatePatchRequest("Assets/Scripts/Test.cs", 5, 1, "// patched");
+        Assert.Equal(WellKnownCommands.ScriptPatch, request.Command);
+    }
+
+    [Fact]
+    public void CreatePatchRequest_EmptyPath_Throws()
+    {
+        Assert.Throws<ArgumentException>(() =>
+            ScriptCommand.CreatePatchRequest("", 1, 0, "// test"));
+    }
+
+    [Fact]
+    public void CreatePatchRequest_SetsPathParameter()
+    {
+        var request = ScriptCommand.CreatePatchRequest("Assets/Scripts/Test.cs", 5, 2, "// new");
+        Assert.Equal("Assets/Scripts/Test.cs", request.Parameters!["path"]!.ToString());
+    }
+
+    [Fact]
+    public void CreatePatchRequest_SetsStartLine()
+    {
+        var request = ScriptCommand.CreatePatchRequest("Assets/Scripts/Test.cs", 10, 0, "// header");
+        Assert.Equal(10, (int)request.Parameters!["startLine"]!);
+    }
+
+    [Fact]
+    public void CreatePatchRequest_SetsDeleteCount()
+    {
+        var request = ScriptCommand.CreatePatchRequest("Assets/Scripts/Test.cs", 3, 5, null);
+        Assert.Equal(5, (int)request.Parameters!["deleteCount"]!);
+    }
+
+    [Fact]
+    public void CreatePatchRequest_InsertOnly_NoContent_OmitsKey()
+    {
+        var request = ScriptCommand.CreatePatchRequest("Assets/Scripts/Test.cs", 1, 3, null);
+        Assert.Null(request.Parameters!["insertContent"]);
+    }
+
+    [Fact]
+    public void CreatePatchRequest_SetsInsertContent()
+    {
+        var request = ScriptCommand.CreatePatchRequest("Assets/Scripts/Test.cs", 1, 0, "using System;\nusing UnityEngine;");
+        Assert.Equal("using System;\nusing UnityEngine;", request.Parameters!["insertContent"]!.ToString());
+    }
 }

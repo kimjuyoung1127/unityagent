@@ -305,6 +305,9 @@ app.Add("script edit", (string project, string path, string? content = null, str
 app.Add("script delete", (string project, string path, bool json = false) =>
     ScriptCommand.Delete(project, path, json));
 
+app.Add("script patch", (string project, string path, int startLine, int deleteCount = 0, string? insertContent = null, string? insertContentFile = null, bool json = false) =>
+    ScriptCommand.Patch(project, path, startLine, deleteCount, insertContent, insertContentFile, json));
+
 app.Add("script validate", (string project, string? path = null, bool wait = true, int timeout = 300, bool json = false) =>
     ScriptCommand.Validate(project, path, wait, timeout, json));
 

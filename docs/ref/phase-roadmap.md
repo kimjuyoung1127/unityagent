@@ -58,6 +58,7 @@ Lighting & NavMesh — lighting bake/cancel/clear/get-settings/set-settings + na
 Physics Settings — physics get-settings/set-settings/get-collision-matrix/set-collision-matrix 4개 명령 ✅ 완료
 Editor Utility 확장 + Script List — editor pause/focus-gameview/focus-sceneview + script list 4개 명령 ✅ 완료
 MCP Context Optimization — C1 QueryTool + C2 Schema Category + C3 Description 경량화 (33→12 MCP 도구) ✅ 완료
+Script Patch v2 — script patch (줄 단위 삽입/삭제/교체) ✅ 완료
 ```
 
 ### 실행 순서 변경 근거

@@ -40,8 +40,10 @@ unityctl 작업 시작 시 가장 먼저 읽는 진입 문서입니다.
 - Editor Utility 확장 (editor pause/focus-gameview/focus-sceneview 3개 명령): Done
 - Script List (script list 1개 명령): Done
 - MCP Context Optimization (C1 QueryTool + C2 Schema Category + C3 Description 경량화): Done (33→12 MCP 도구)
+- Script Patch v2 (script patch — 줄 단위 삽입/삭제/교체): Done
 
 최근 확정 사항 (최신 3개만 표시, 전체 이력은 `docs/internal/DEVELOPMENT.md` "슬라이스 이력" 참조):
+- Script Patch v2 (2026-03-19): `script patch` 명령 (startLine/deleteCount/insertContent). Plugin ScriptPatchHandler + CLI + MCP allowlist. Unity 실측 5/5 통과. 534개 dotnet 테스트.
 - MCP Context Optimization (2026-03-19): C1 QueryTool (22개 read 도구 → 1개 통합), C2 Schema Category 필터, C3 Description 경량화. MCP 도구 33→12개 (64% 감소). Unity 실측 10/10 통과. 543개 dotnet 테스트.
 - NuGet v0.2.0 배포 완료 (2026-03-19): `dotnet tool install -g unityctl` + `unityctl-mcp`. GitHub Actions release.yml 자동 배포 파이프라인 (4플랫폼 빌드 + NuGet push + GitHub Release).
 - Editor Utility 확장 + Script List (2026-03-19): editor pause/focus-gameview/focus-sceneview + script list 4개 명령. Unity 실측 8/8 통과.
@@ -132,6 +134,7 @@ unityctl.slnx
 | **Editor Utility 확장** | ✅ 완료 | **editor pause/focus-gameview/focus-sceneview** (3개 명령) |
 | **Script List** | ✅ 완료 | **script list** (MonoScript 탐색, folder/filter/limit) |
 | **MCP Context Opt** | ✅ 완료 | **C1 QueryTool** (22 read→1 통합) + **C2 Schema Category** + **C3 Description 경량화** (33→12 MCP 도구) |
+| **Script Patch v2** | ✅ 완료 | **script patch** (startLine/deleteCount/insertContent, 줄 단위 부분 편집) |
 
 ## Source of Truth 문서
 - 탐색 인덱스: `AGENTS.md`
