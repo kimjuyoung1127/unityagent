@@ -89,6 +89,8 @@ namespace Unityctl.Plugin.Editor.Shared
         public const string UiCanvasCreate = "ui-canvas-create";
         public const string UiElementCreate = "ui-element-create";
         public const string UiSetRect = "ui-set-rect";
+        public const string UiFind = "ui-find";
+        public const string UiGet = "ui-get";
 
         // Script Editing v1
         public const string ScriptCreate = "script-create";
@@ -145,6 +147,9 @@ namespace Unityctl.Plugin.Editor.Shared
         public const string NavMeshBake = "navmesh-bake";
         public const string NavMeshClear = "navmesh-clear";
         public const string NavMeshGetSettings = "navmesh-get-settings";
+
+        // Project Validation
+        public const string ProjectValidate = "project-validate";
 
         // Physics
         public const string PhysicsGetSettings = "physics-get-settings";

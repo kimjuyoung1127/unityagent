@@ -42,11 +42,12 @@ unityctl 작업 시작 시 가장 먼저 읽는 진입 문서입니다.
 - MCP Context Optimization (C1 QueryTool + C2 Schema Category + C3 Description 경량화): Done (33→12 MCP 도구)
 - Script Patch v2 (script patch — 줄 단위 삽입/삭제/교체): Done
 - Script v2 (script-get-errors, script-find-refs, script-rename-symbol): Done
+- Project Validate (project-validate — 게임 준비 상태 검증): Done
 
 최근 확정 사항 (최신 3개만 표시, 전체 이력은 `docs/internal/DEVELOPMENT.md` "슬라이스 이력" 참조):
+- Project Validate (2026-03-19): `project-validate` (compile, buildScenes, camera, light, console, editorState 6개 체크). Unity 실측 2/2 통과. 581개 dotnet 테스트.
 - Script v2 (2026-03-19): `script-get-errors` (CompilerMessage 수집), `script-find-refs` (단어 경계 텍스트 탐색), `script-rename-symbol` (일괄 리네이밍+파일명+dryRun). Unity 실측 7/7 통과. 558개 dotnet 테스트.
 - Script Patch v2 (2026-03-19): `script patch` 명령 (startLine/deleteCount/insertContent). Plugin ScriptPatchHandler + CLI + MCP allowlist. Unity 실측 5/5 통과. 534개 dotnet 테스트.
-- MCP Context Optimization (2026-03-19): C1 QueryTool (22개 read 도구 → 1개 통합), C2 Schema Category 필터, C3 Description 경량화. MCP 도구 33→12개 (64% 감소). Unity 실측 10/10 통과. 543개 dotnet 테스트.
 
 ## 실행 규칙 (MUST)
 1. 기존 코드/타입/유틸 우선 재사용, 중복 구현 금지

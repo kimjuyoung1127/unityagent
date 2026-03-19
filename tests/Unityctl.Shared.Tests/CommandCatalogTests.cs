@@ -32,8 +32,8 @@ public class CommandCatalogTests
              // Phase C-4: Material/Shader
              "material-create", "material-get", "material-set", "material-set-shader",
              // Phase C-5: Animation + UI
-             "animation-create-clip", "animation-create-controller",
-             "ui-canvas-create", "ui-element-create", "ui-set-rect",
+              "animation-create-clip", "animation-create-controller",
+              "ui-canvas-create", "ui-element-create", "ui-set-rect", "ui-find", "ui-get",
              // Script Editing v1
              "script-create", "script-edit", "script-delete", "script-validate",
              "script-patch",
@@ -60,7 +60,9 @@ public class CommandCatalogTests
              "physics-get-settings", "physics-set-settings",
              "physics-get-collision-matrix", "physics-set-collision-matrix",
              // Script v2: diagnostics + refactoring
-             "script-get-errors", "script-find-refs", "script-rename-symbol"],
+             "script-get-errors", "script-find-refs", "script-rename-symbol",
+             // Project Validation
+             "project-validate"],
             names);
     }
 

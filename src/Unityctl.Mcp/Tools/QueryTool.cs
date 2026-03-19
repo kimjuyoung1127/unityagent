@@ -23,6 +23,8 @@ internal sealed class QueryTool(CommandExecutor executor)
         WellKnownCommands.GameObjectFind,
         WellKnownCommands.GameObjectGet,
         WellKnownCommands.ComponentGet,
+        WellKnownCommands.UiFind,
+        WellKnownCommands.UiGet,
         WellKnownCommands.TagList,
         WellKnownCommands.LayerList,
         WellKnownCommands.ConsoleGetCount,
@@ -35,6 +37,8 @@ internal sealed class QueryTool(CommandExecutor executor)
         // Script v2
         WellKnownCommands.ScriptGetErrors,
         WellKnownCommands.ScriptFindRefs,
+        // Project Validation
+        WellKnownCommands.ProjectValidate,
         // Scene (was SceneTool)
         WellKnownCommands.SceneSnapshot,
         WellKnownCommands.SceneHierarchy,

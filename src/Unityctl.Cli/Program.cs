@@ -44,6 +44,9 @@ app.Add("tools", (bool json = false) =>
 app.Add("doctor", (string project, bool json = false) =>
     DoctorCommand.Execute(project, json));
 
+app.Add("project validate", (string project, bool json = false) =>
+    ProjectValidateCommand.Execute(project, json));
+
 app.Add("log", (
         int? last = null,
         bool tail = false,
@@ -284,6 +287,23 @@ app.Add("ui element-create", (string project, string type, string? name = null, 
 
 app.Add("ui set-rect", (string project, string id, string? anchoredPosition = null, string? sizeDelta = null, string? anchorMin = null, string? anchorMax = null, string? pivot = null, bool json = false) =>
     UiCommand.SetRect(project, id, anchoredPosition, sizeDelta, anchorMin, anchorMax, pivot, json));
+
+app.Add("ui find", (
+        string project,
+        string? name = null,
+        string? text = null,
+        string? type = null,
+        string? parent = null,
+        string? canvas = null,
+        string? interactable = null,
+        string? active = null,
+        bool includeInactive = false,
+        int? limit = null,
+        bool json = false) =>
+    UiCommand.Find(project, name, text, type, parent, canvas, interactable, active, includeInactive, limit, json));
+
+app.Add("ui get", (string project, string id, bool json = false) =>
+    UiCommand.Get(project, id, json));
 
 app.Add("undo", (string project, bool json = false) =>
     UndoCommand.Undo(project, json));

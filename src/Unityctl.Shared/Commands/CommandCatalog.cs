@@ -656,6 +656,30 @@ public static class CommandCatalog
         Parameter("pivot", "string", "Pivot as JSON [x,y]", required: false),
         Parameter("json", "bool", "Output as JSON", required: false)).WithCli("ui set-rect");
 
+    public static readonly CommandDefinition UiFindCmd = Define(
+        WellKnownCommands.UiFind,
+        "Find UGUI elements in loaded scenes using UI-specific filters",
+        "query",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("name", "string", "Case-insensitive partial match on UI GameObject name", required: false),
+        Parameter("text", "string", "Case-insensitive partial match on primary UI text content", required: false),
+        Parameter("type", "string", "Exact UI type match (Canvas, Button, Text, Image, Panel, InputField, Toggle, Slider, Dropdown, ScrollView)", required: false),
+        Parameter("parent", "string", "GlobalObjectId of the direct parent UI element", required: false),
+        Parameter("canvas", "string", "GlobalObjectId of the root Canvas", required: false),
+        Parameter("interactable", "bool", "Filter Selectable-based controls by interactable state", required: false),
+        Parameter("active", "bool", "Filter by GameObject activeSelf state", required: false),
+        Parameter("includeInactive", "bool", "Include inactive UI elements in the search", required: false),
+        Parameter("limit", "int", "Maximum number of results to return", required: false),
+        Parameter("json", "bool", "Output as JSON", required: false)).WithCli("ui find");
+
+    public static readonly CommandDefinition UiGetCmd = Define(
+        WellKnownCommands.UiGet,
+        "Get RectTransform and component summary details for a single UGUI element",
+        "query",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("id", "string", "GlobalObjectId of the UI element", required: true),
+        Parameter("json", "bool", "Output as JSON", required: false)).WithCli("ui get");
+
     // Script Editing v1
     public static readonly CommandDefinition ScriptCreateCmd = Define(
         WellKnownCommands.ScriptCreate,
@@ -737,6 +761,14 @@ public static class CommandCatalog
         Parameter("folder", "string", "Root folder to search (default: Assets)", required: false),
         Parameter("dryRun", "bool", "Preview changes without writing (default: false)", required: false),
         Parameter("json", "bool", "Output as JSON", required: false)).WithCli("script rename-symbol");
+
+    // Project Validation
+    public static readonly CommandDefinition ProjectValidateCmd = Define(
+        WellKnownCommands.ProjectValidate,
+        "Validate project readiness (compilation, scenes, camera, lighting, console)",
+        "query",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("json", "bool", "Output as JSON", required: false)).WithCli("project validate");
 
     // P0 잔여분: Asset Labels
     public static readonly CommandDefinition AssetGetLabels = Define(
@@ -1071,6 +1103,8 @@ public static class CommandCatalog
         UiCanvasCreateCmd,
         UiElementCreateCmd,
         UiSetRectCmd,
+        UiFindCmd,
+        UiGetCmd,
         // Script Editing v1
         ScriptCreateCmd,
         ScriptEditCmd,
@@ -1119,7 +1153,9 @@ public static class CommandCatalog
         // Script v2: diagnostics + refactoring
         ScriptGetErrorsCmd,
         ScriptFindRefsCmd,
-        ScriptRenameSymbolCmd
+        ScriptRenameSymbolCmd,
+        // Project Validation
+        ProjectValidateCmd
     ];
 
     private static CommandDefinition Define(
