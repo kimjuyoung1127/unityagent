@@ -6,10 +6,26 @@ This guide is for AI coding agents (Claude, Copilot, etc.) that need to automate
 
 ## Zero-config Setup
 
+### Option A: NuGet install (recommended)
+
+```bash
+# 1. Install
+dotnet tool install -g unityctl
+dotnet tool install -g unityctl-mcp   # MCP server (optional)
+
+# 2. Add plugin to target Unity project
+unityctl init --project "/path/to/unity/project"
+
+# 3. Verify
+unityctl editor list --json
+```
+
+### Option B: Build from source
+
 ```bash
 # 1. Clone and build
-git clone https://github.com/your-username/unityctl.git
-cd unityctl
+git clone https://github.com/kimjuyoung1127/unityagent.git
+cd unityagent
 dotnet build unityctl.slnx
 
 # 2. Add plugin to target Unity project
@@ -135,11 +151,11 @@ unityctl is designed as a **superset** of MCP for Unity workflows:
 | `tools/list` | `unityctl tools --json` | Available |
 | Tool execution | CLI commands + `--json` | Available |
 | Prompts | `ai-quickstart.md` | Available |
-| Resources | Flight Recorder + Scene Snapshot | Planned (Phase 3B, 4B) |
-| Tasks | Session Layer | Planned (Phase 3A) |
-| Streaming | Watch Mode | Planned (Phase 3C) |
+| Resources | Flight Recorder + Scene Snapshot | ✅ Available |
+| Tasks | Session Layer | ✅ Available |
+| Streaming | Watch Mode | ✅ Available |
 
-If MCP bridge is needed, the MCP C# SDK can wrap unityctl commands in ~100 lines using `[McpServerToolType]` and `[McpServerTool]`.
+The native MCP server (`unityctl-mcp`) is available as a dotnet tool with 33 MCP tools.
 
 ## Error Recovery
 

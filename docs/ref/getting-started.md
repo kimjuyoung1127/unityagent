@@ -9,9 +9,18 @@ See also: [glossary](./glossary.md)
 
 ## Installation
 
+### Option A: NuGet (recommended)
+
 ```bash
-git clone https://github.com/your-username/unityctl.git
-cd unityctl
+dotnet tool install -g unityctl
+dotnet tool install -g unityctl-mcp   # MCP server (optional)
+```
+
+### Option B: Build from source
+
+```bash
+git clone https://github.com/kimjuyoung1127/unityagent.git
+cd unityagent
 dotnet build unityctl.slnx
 ```
 
@@ -147,7 +156,7 @@ The `CommandExecutor` in Core automatically selects the best available transport
 ## Running Tests
 
 ```bash
-# All tests (85 total)
+# All tests (538+)
 dotnet test unityctl.slnx
 
 # Unit tests only (faster, no CLI execution)
