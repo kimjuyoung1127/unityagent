@@ -11,10 +11,19 @@ app.Add("init", (string project, string? source = null) =>
 app.Add("editor list", (bool json = false) =>
     EditorCommands.List(json));
 
-app.Add("ping", (string project, bool json = false) =>
+app.Add("editor instances", (bool json = false) =>
+    EditorCommands.Instances(json));
+
+app.Add("editor current", (bool json = false) =>
+    EditorCommands.Current(json));
+
+app.Add("editor select", (string? project = null, int? pid = null, bool json = false) =>
+    EditorCommands.Select(project, pid, json));
+
+app.Add("ping", (string? project = null, bool json = false) =>
     PingCommand.Execute(project, json));
 
-app.Add("status", (string project, bool wait = false, bool json = false) =>
+app.Add("status", (string? project = null, bool wait = false, bool json = false) =>
     StatusCommand.Execute(project, wait, json));
 
 app.Add("build", (string project, string target = "StandaloneWindows64", string? output = null, bool dryRun = false, bool json = false) =>
@@ -35,13 +44,13 @@ app.Add("build-target switch", (string project, string target, int timeout = 900
 app.Add("test", (string project, string mode = "edit", string? filter = null, bool noWait = false, int timeout = 300, bool json = false) =>
     TestCommand.Execute(project, mode, filter, !noWait, timeout, json));
 
-app.Add("check", (string project, string type = "compile", bool json = false) =>
+app.Add("check", (string? project = null, string type = "compile", bool json = false) =>
     CheckCommand.Execute(project, type, json));
 
 app.Add("tools", (bool json = false) =>
     ToolsCommand.Execute(json));
 
-app.Add("doctor", (string project, bool json = false) =>
+app.Add("doctor", (string? project = null, bool json = false) =>
     DoctorCommand.Execute(project, json));
 
 app.Add("project validate", (string project, bool json = false) =>
@@ -98,6 +107,9 @@ app.Add("exec", (string project, string? code = null, string? file = null, bool 
 
 app.Add("workflow run", (string file, string? project = null, bool json = false) =>
     WorkflowCommand.Run(file, project, json));
+
+app.Add("workflow verify", (string file, string project, string? artifactsDir = null, bool inlineEvidence = false, bool json = false) =>
+    WorkflowCommand.Verify(file, project, artifactsDir, inlineEvidence, json));
 
 app.Add("batch execute", (string project, string? commands = null, string? file = null, bool rollbackOnFailure = true, bool json = false) =>
     BatchCommand.Execute(project, commands, file, rollbackOnFailure, json));
@@ -432,6 +444,37 @@ app.Add("physics get-collision-matrix", (string project, bool json = false) =>
 
 app.Add("physics set-collision-matrix", (string project, string layer1, string layer2, string ignore, bool json = false) =>
     PhysicsCommand.SetCollisionMatrix(project, layer1, layer2, ignore, json));
+
+// Camera
+app.Add("camera list", (string project, bool includeInactive = false, bool json = false) =>
+    CameraCommand.List(project, includeInactive, json));
+
+app.Add("camera get", (string project, string id, bool json = false) =>
+    CameraCommand.Get(project, id, json));
+
+// Texture Import
+app.Add("texture get-import-settings", (string project, string path, bool json = false) =>
+    TextureCommand.GetImportSettings(project, path, json));
+
+app.Add("texture set-import-settings", (string project, string path, string property, string value, bool json = false) =>
+    TextureCommand.SetImportSettings(project, path, property, value, json));
+
+// ScriptableObject
+app.Add("scriptableobject find", (string project, string? type = null, string? folder = null, int? limit = null, bool json = false) =>
+    ScriptableObjectCommand.Find(project, type, folder, limit, json));
+
+app.Add("scriptableobject get", (string project, string path, string? property = null, bool json = false) =>
+    ScriptableObjectCommand.Get(project, path, property, json));
+
+app.Add("scriptableobject set-property", (string project, string path, string property, string value, bool json = false) =>
+    ScriptableObjectCommand.SetProperty(project, path, property, value, json));
+
+// Shader
+app.Add("shader find", (string project, string? filter = null, bool includeBuiltin = false, int? limit = null, bool json = false) =>
+    ShaderCommand.Find(project, filter, includeBuiltin, limit, json));
+
+app.Add("shader get-properties", (string project, string name, bool json = false) =>
+    ShaderCommand.GetProperties(project, name, json));
 
 // Screenshot / Visual Feedback — P3
 app.Add("screenshot capture", (

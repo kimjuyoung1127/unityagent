@@ -11,12 +11,12 @@ public class CommandCatalogTests
         var names = CommandCatalog.All.Select(command => command.Name).ToArray();
 
         Assert.Equal(
-            ["init", "editor list", "ping", "status", "build",
+            ["init", "editor list", "editor instances", "editor current", "editor select", "ping", "status", "build",
              "build-profile-list", "build-profile-get-active", "build-profile-set-active", "build-target-switch",
              "test", "check", "tools", "doctor", "log",
              "session list", "session stop", "session clean", "watch",
              "scene snapshot", "scene-hierarchy", "scene diff",
-             "schema", "exec", "workflow", "batch-execute",
+             "schema", "exec", "workflow", "workflow-verify", "batch-execute",
              "play-mode", "player-settings-get", "player-settings-set", "asset-refresh",
              "asset-find", "asset-get-info", "asset-get-dependencies", "asset-reference-graph",
               "build-settings-get-scenes", "gameobject-find", "gameobject-get", "component-get",
@@ -64,7 +64,15 @@ public class CommandCatalogTests
              // Mesh Primitives
              "mesh-create-primitive",
              // Project Validation
-             "project-validate"],
+             "project-validate",
+             // Camera
+             "camera-list", "camera-get",
+             // Texture Import
+             "texture-get-import-settings", "texture-set-import-settings",
+             // ScriptableObject
+             "scriptableobject-find", "scriptableobject-get", "scriptableobject-set-property",
+             // Shader
+             "shader-find", "shader-get-properties"],
             names);
     }
 

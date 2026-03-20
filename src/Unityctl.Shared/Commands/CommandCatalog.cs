@@ -18,6 +18,26 @@ public static class CommandCatalog
         "discovery",
         Parameter("json", "bool", "Output as JSON", required: false));
 
+    public static readonly CommandDefinition EditorInstances = Define(
+        "editor instances",
+        "List running Unity Editor instances with project and IPC state",
+        "discovery",
+        Parameter("json", "bool", "Output as JSON", required: false));
+
+    public static readonly CommandDefinition EditorCurrent = Define(
+        "editor current",
+        "Show the currently selected Unity project target for CLI routing",
+        "meta",
+        Parameter("json", "bool", "Output as JSON", required: false));
+
+    public static readonly CommandDefinition EditorSelect = Define(
+        "editor select",
+        "Select a Unity project or a single running Unity pid for commands that omit --project",
+        "setup",
+        Parameter("project", "string", "Path to Unity project", required: false),
+        Parameter("pid", "int", "Running Unity process id to pin when it maps to a single project", required: false),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
     public static readonly CommandDefinition Status = Define(
         WellKnownCommands.Status,
         "Check Unity editor and project status",
@@ -198,6 +218,16 @@ public static class CommandCatalog
         Parameter("file", "string", "Path to workflow JSON definition file", required: true),
         Parameter("project", "string", "Default project path for steps that omit it", required: false),
         Parameter("json", "bool", "Output results as JSON", required: false)).WithCli("workflow run");
+
+    public static readonly CommandDefinition WorkflowVerify = Define(
+        "workflow-verify",
+        "Run verification steps and emit artifact-first evidence output",
+        "action",
+        Parameter("file", "string", "Path to verification JSON definition file", required: true),
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("artifactsDir", "string", "Artifact output directory (optional)", required: false),
+        Parameter("inlineEvidence", "bool", "Include inline base64 evidence (default: false)", required: false),
+        Parameter("json", "bool", "Output results as JSON", required: false)).WithCli("workflow verify");
 
     public static readonly CommandDefinition BatchExecute = Define(
         WellKnownCommands.BatchExecute,
@@ -846,6 +876,7 @@ public static class CommandCatalog
         Parameter("output", "string", "File path to save the image (optional, base64-only by default)", required: false),
         Parameter("json", "bool", "Output as JSON", required: false)).WithCli("screenshot capture");
 
+
     // Tags & Layers
     public static readonly CommandDefinition TagList = Define(
         WellKnownCommands.TagList,
@@ -1057,10 +1088,98 @@ public static class CommandCatalog
         Parameter("ignore", "bool", "true to disable collision, false to enable", required: true),
         Parameter("json", "bool", "Output as JSON", required: false)).WithCli("physics set-collision-matrix");
 
+    // Camera
+    public static readonly CommandDefinition CameraListCmd = Define(
+        WellKnownCommands.CameraList,
+        "List all Camera components in loaded scenes",
+        "query",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("includeInactive", "bool", "Include inactive GameObjects", required: false),
+        Parameter("json", "bool", "Output as JSON", required: false)).WithCli("camera list");
+
+    public static readonly CommandDefinition CameraGetCmd = Define(
+        WellKnownCommands.CameraGet,
+        "Get detailed Camera component properties by GlobalObjectId",
+        "query",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("id", "string", "GlobalObjectId of the Camera component or its GameObject", required: true),
+        Parameter("json", "bool", "Output as JSON", required: false)).WithCli("camera get");
+
+    // Texture Import
+    public static readonly CommandDefinition TextureGetImportSettingsCmd = Define(
+        WellKnownCommands.TextureGetImportSettings,
+        "Get TextureImporter settings for a texture asset",
+        "query",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("path", "string", "Texture asset path (e.g. Assets/Textures/icon.png)", required: true),
+        Parameter("json", "bool", "Output as JSON", required: false)).WithCli("texture get-import-settings");
+
+    public static readonly CommandDefinition TextureSetImportSettingsCmd = Define(
+        WellKnownCommands.TextureSetImportSettings,
+        "Set a TextureImporter property and reimport",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("path", "string", "Texture asset path", required: true),
+        Parameter("property", "string", "Import property name (e.g. maxTextureSize, filterMode, textureCompression)", required: true),
+        Parameter("value", "string", "New value", required: true),
+        Parameter("json", "bool", "Output as JSON", required: false)).WithCli("texture set-import-settings");
+
+    // ScriptableObject
+    public static readonly CommandDefinition ScriptableObjectFindCmd = Define(
+        WellKnownCommands.ScriptableObjectFind,
+        "Find ScriptableObject assets in the project",
+        "query",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("type", "string", "Filter by ScriptableObject type name", required: false),
+        Parameter("folder", "string", "Root folder to search", required: false),
+        Parameter("limit", "int", "Maximum number of results", required: false),
+        Parameter("json", "bool", "Output as JSON", required: false)).WithCli("scriptableobject find");
+
+    public static readonly CommandDefinition ScriptableObjectGetCmd = Define(
+        WellKnownCommands.ScriptableObjectGet,
+        "Get serialized properties of a ScriptableObject asset",
+        "query",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("path", "string", "ScriptableObject asset path", required: true),
+        Parameter("property", "string", "SerializedProperty path (optional, returns all if omitted)", required: false),
+        Parameter("json", "bool", "Output as JSON", required: false)).WithCli("scriptableobject get");
+
+    public static readonly CommandDefinition ScriptableObjectSetPropertyCmd = Define(
+        WellKnownCommands.ScriptableObjectSetProperty,
+        "Set a serialized property on a ScriptableObject asset",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("path", "string", "ScriptableObject asset path", required: true),
+        Parameter("property", "string", "SerializedProperty path", required: true),
+        Parameter("value", "string", "New value as JSON string", required: true),
+        Parameter("json", "bool", "Output as JSON", required: false)).WithCli("scriptableobject set-property");
+
+    // Shader
+    public static readonly CommandDefinition ShaderFindCmd = Define(
+        WellKnownCommands.ShaderFind,
+        "Find shaders in the project",
+        "query",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("filter", "string", "Case-insensitive name filter", required: false),
+        Parameter("includeBuiltin", "bool", "Include built-in shaders (default: false)", required: false),
+        Parameter("limit", "int", "Maximum number of results", required: false),
+        Parameter("json", "bool", "Output as JSON", required: false)).WithCli("shader find");
+
+    public static readonly CommandDefinition ShaderGetPropertiesCmd = Define(
+        WellKnownCommands.ShaderGetProperties,
+        "Get exposed properties of a shader",
+        "query",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("name", "string", "Shader name (e.g. Standard, Universal Render Pipeline/Lit)", required: true),
+        Parameter("json", "bool", "Output as JSON", required: false)).WithCli("shader get-properties");
+
     public static CommandDefinition[] All { get; } =
     [
         Init,
         EditorList,
+        EditorInstances,
+        EditorCurrent,
+        EditorSelect,
         Ping,
         Status,
         Build,
@@ -1083,6 +1202,7 @@ public static class CommandCatalog
         Schema,
         Exec,
         Workflow,
+        WorkflowVerify,
         BatchExecute,
         PlayMode,
         PlayerSettingsGet,
@@ -1194,7 +1314,20 @@ public static class CommandCatalog
         // Mesh Primitives
         MeshCreatePrimitiveCmd,
         // Project Validation
-        ProjectValidateCmd
+        ProjectValidateCmd,
+        // Camera
+        CameraListCmd,
+        CameraGetCmd,
+        // Texture Import
+        TextureGetImportSettingsCmd,
+        TextureSetImportSettingsCmd,
+        // ScriptableObject
+        ScriptableObjectFindCmd,
+        ScriptableObjectGetCmd,
+        ScriptableObjectSetPropertyCmd,
+        // Shader
+        ShaderFindCmd,
+        ShaderGetPropertiesCmd
     ];
 
     private static CommandDefinition Define(

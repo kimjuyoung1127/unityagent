@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using Unityctl.Core.Platform;
+using Unityctl.Core.Transport;
 using Unityctl.Shared.Models;
 
 namespace Unityctl.Core.Discovery;
@@ -40,6 +41,9 @@ public sealed class UnityEditorDiscovery
             if (!Directory.Exists(searchPath)) continue;
             ScanEditorDirectory(searchPath, editors);
         }
+
+        var runningProcesses = _platform.FindRunningUnityProcesses().ToList();
+        HydrateRunningState(editors.Values, runningProcesses);
 
         return editors.Values
             .OrderByDescending(e => e.Version, UnityVersionComparer.Instance)
@@ -132,5 +136,90 @@ public sealed class UnityEditorDiscovery
         return candidateMajor != null
             && requestedMajor != null
             && candidateMajor.Equals(requestedMajor, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public List<UnityEditorInstanceInfo> FindRunningEditorInstances(bool probeIpc = false)
+    {
+        var installedEditors = FindEditors();
+        var runningProcesses = _platform.FindRunningUnityProcesses().ToList();
+        var instances = new List<UnityEditorInstanceInfo>(runningProcesses.Count);
+
+        foreach (var process in runningProcesses)
+        {
+            string? normalizedProjectPath = null;
+            string? pipeName = null;
+            var ipcReady = false;
+
+            if (!string.IsNullOrWhiteSpace(process.ProjectPath))
+            {
+                normalizedProjectPath = Unityctl.Shared.Constants.NormalizeProjectPath(process.ProjectPath);
+                pipeName = Unityctl.Shared.Constants.GetPipeName(process.ProjectPath);
+
+                if (probeIpc)
+                {
+                    IpcTransport? ipc = null;
+                    try
+                    {
+                        ipc = new IpcTransport(process.ProjectPath);
+                        ipcReady = ipc.ProbeAsync().GetAwaiter().GetResult();
+                    }
+                    catch
+                    {
+                        ipcReady = false;
+                    }
+                    finally
+                    {
+                        if (ipc != null)
+                            ipc.DisposeAsync().GetAwaiter().GetResult();
+                    }
+                }
+            }
+
+            var matchingEditor = installedEditors.FirstOrDefault(editor =>
+                string.Equals(editor.Version, process.Version, StringComparison.OrdinalIgnoreCase)
+                || (!string.IsNullOrWhiteSpace(process.ExecutablePath)
+                    && string.Equals(
+                        _platform.GetUnityExecutablePath(editor.Location),
+                        process.ExecutablePath,
+                        StringComparison.OrdinalIgnoreCase)));
+
+            instances.Add(new UnityEditorInstanceInfo
+            {
+                ProcessId = process.ProcessId,
+                ProjectPath = normalizedProjectPath,
+                Version = process.Version ?? matchingEditor?.Version,
+                EditorLocation = matchingEditor?.Location,
+                PipeName = pipeName,
+                IpcReady = ipcReady
+            });
+        }
+
+        return instances
+            .OrderBy(instance => instance.ProjectPath ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(instance => instance.ProcessId)
+            .ToList();
+    }
+
+    private void HydrateRunningState(IEnumerable<UnityEditorInfo> editors, IReadOnlyList<UnityProcessInfo> runningProcesses)
+    {
+        foreach (var editor in editors)
+        {
+            var editorExecutablePath = Path.GetFullPath(_platform.GetUnityExecutablePath(editor.Location));
+            var matches = runningProcesses
+                .Where(process => string.Equals(
+                    process.ExecutablePath,
+                    editorExecutablePath,
+                    StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            editor.IsRunning = matches.Count > 0;
+            editor.RunningProcessIds = matches.Select(process => process.ProcessId).Distinct().OrderBy(id => id).ToList();
+            editor.RunningProjectPaths = matches
+                .Where(process => !string.IsNullOrWhiteSpace(process.ProjectPath))
+                .Select(process => Unityctl.Shared.Constants.NormalizeProjectPath(process.ProjectPath!))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
     }
 }

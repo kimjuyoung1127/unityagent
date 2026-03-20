@@ -80,8 +80,20 @@ This adds the `com.unityctl.bridge` UPM package to your project's `Packages/mani
 # List installed Unity editors
 unityctl editor list
 
+# Inspect running Unity instances (PID / project / IPC)
+unityctl editor instances --json
+
+# Optionally pin the current project for project-less CLI checks
+unityctl editor select --project /path/to/project
+
+# Or pin a running Unity PID when it uniquely maps to one project
+unityctl editor select --pid 55028
+
 # Ping the running Editor (IPC) or fall back to batchmode
 unityctl ping --project /path/to/project --json
+
+# After selection, ping/status/check/doctor can omit --project
+unityctl ping --json
 
 # Get editor state
 unityctl status --project /path/to/project --json
@@ -130,6 +142,14 @@ unityctl doctor --project /path/to/project --json
 It also reports the configured plugin source, active session hints, recommended next steps, and whether a Unity project lock is currently detected.
 When IPC is already healthy, a detected Unity lockfile is treated as informational rather than an automatic failure signal.
 
+### 7. Run a verification bundle
+
+```bash
+unityctl workflow verify --file ./verify.json --project /path/to/project --json
+```
+
+`workflow verify` is the first Visual Verification v2 slice. Today it supports `projectValidate`, `capture`, `imageDiff`, `consoleWatch`, `uiAssert`, and `playSmoke`, and writes artifact-first output under `~/.unityctl/verification/`.
+
 ## Common Workflows
 
 ### Scene & GameObject
@@ -142,7 +162,7 @@ unityctl scene hierarchy --project /path/to/project --json
 unityctl gameobject create --project /path/to/project --name "Player" --json
 
 # Add a component
-unityctl component add --project /path/to/project --target "Player" --component "Rigidbody" --json
+unityctl component add --project /path/to/project --id "<PlayerId>" --type "Rigidbody" --json
 
 # Create a primitive mesh
 unityctl mesh create-primitive --project /path/to/project --type Cube --name "FloorBlock" --position "[0,0,0]" --json
@@ -173,6 +193,49 @@ unityctl mesh create-primitive --project /path/to/project --type Cube --name "De
 
 `mesh create-primitive` currently targets Unity's built-in primitive set (`Cube`, `Sphere`, `Plane`, `Cylinder`, `Capsule`, `Quad`). Like other scene write commands, it is most reliable with a running Editor and IPC ready.
 
+### Camera
+
+```bash
+# List all cameras in loaded scenes
+unityctl camera list --project /path/to/project --json
+
+# Get detailed camera properties
+unityctl camera get --project /path/to/project --id "<GlobalObjectId>" --json
+```
+
+### Texture import
+
+```bash
+# Read texture import settings
+unityctl texture get-import-settings --project /path/to/project --path "Assets/Textures/icon.png" --json
+
+# Change a texture import setting (triggers reimport)
+unityctl texture set-import-settings --project /path/to/project --path "Assets/Textures/icon.png" --property maxTextureSize --value 512 --json
+```
+
+### ScriptableObject
+
+```bash
+# Find ScriptableObject assets
+unityctl scriptableobject find --project /path/to/project --type "GameConfig" --json
+
+# Get serialized properties
+unityctl scriptableobject get --project /path/to/project --path "Assets/Data/config.asset" --json
+
+# Set a property (Undo-backed)
+unityctl scriptableobject set-property --project /path/to/project --path "Assets/Data/config.asset" --property "m_Name" --value "newName" --json
+```
+
+### Shader
+
+```bash
+# Find shaders in the project
+unityctl shader find --project /path/to/project --filter "Standard" --json
+
+# Get shader properties
+unityctl shader get-properties --project /path/to/project --name "Standard" --json
+```
+
 ### UI inspection
 
 ```bash
@@ -195,7 +258,7 @@ unityctl ui input --project /path/to/project --id "<GlobalObjectId>" --text "Alp
 
 ```bash
 # Create a new C# script
-unityctl script create --project /path/to/project --name "PlayerController" --json
+unityctl script create --project /path/to/project --path "Assets/Scripts/PlayerController.cs" --className "PlayerController" --json
 
 # List scripts
 unityctl script list --project /path/to/project --folder Assets --json
@@ -250,7 +313,7 @@ unityctl.slnx
 ├── src/Unityctl.Cli      (net10.0)         CLI shell → dotnet tool "unityctl"
 ├── src/Unityctl.Mcp      (net10.0)         MCP server → dotnet tool "unityctl-mcp"
 ├── src/Unityctl.Plugin   (Unity UPM)       Editor bridge (IPC server)
-└── tests/*                                 624 xUnit tests
+└── tests/*                                 689 xUnit tests
 ```
 
 **Dependency direction**: `Shared ← Core ← Cli / Mcp`. Plugin runs inside Unity and shares source files with Shared.

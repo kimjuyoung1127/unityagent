@@ -10,11 +10,18 @@ public static class StatusCommand
     private const int DomainReloadMaxAttempts = 30;
     private const int DomainReloadDelayMs = 3000;
 
-    public static void Execute(string project, bool wait = false, bool json = false)
+    public static void Execute(string? project = null, bool wait = false, bool json = false)
     {
         if (wait)
         {
-            var exitCode = ExecuteWithSmartWaitAsync(project, json).GetAwaiter().GetResult();
+            if (!CommandRunner.TryResolveProject(project, out var resolvedProject, out var failureResponse))
+            {
+                CommandRunner.PrintResponse(failureResponse!, json);
+                Environment.Exit(1);
+                return;
+            }
+
+            var exitCode = ExecuteWithSmartWaitAsync(resolvedProject, json).GetAwaiter().GetResult();
             Environment.Exit(exitCode);
             return;
         }

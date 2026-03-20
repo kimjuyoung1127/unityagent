@@ -13,4 +13,9 @@
   <ItemGroup>
     <ProjectReference Include="..\Unityctl.Shared\Unityctl.Shared.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Management" Version="9.0.0" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+  </ItemGroup>
 </Project>

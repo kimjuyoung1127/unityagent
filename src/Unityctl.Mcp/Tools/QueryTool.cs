@@ -45,6 +45,17 @@ internal sealed class QueryTool(CommandExecutor executor)
         WellKnownCommands.SceneDiff,
         // Screenshot (was ScreenshotTool)
         WellKnownCommands.Screenshot,
+        // Camera
+        WellKnownCommands.CameraList,
+        WellKnownCommands.CameraGet,
+        // Texture Import
+        WellKnownCommands.TextureGetImportSettings,
+        // ScriptableObject
+        WellKnownCommands.ScriptableObjectFind,
+        WellKnownCommands.ScriptableObjectGet,
+        // Shader
+        WellKnownCommands.ShaderFind,
+        WellKnownCommands.ShaderGetProperties,
         // Additional reads
         WellKnownCommands.BuildProfileList,
         WellKnownCommands.BuildProfileGetActive,

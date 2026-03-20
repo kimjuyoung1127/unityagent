@@ -1,9 +1,11 @@
 using System.IO.Pipes;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Unityctl.Cli.Execution;
 using Unityctl.Core.FlightRecorder;
 using Unityctl.Core.Diagnostics;
 using Unityctl.Core.Discovery;
+using Unityctl.Core.EditorRouting;
 using Unityctl.Core.Platform;
 using Unityctl.Core.Sessions;
 using Unityctl.Shared;
@@ -13,18 +15,26 @@ namespace Unityctl.Cli.Commands;
 
 public static class DoctorCommand
 {
-    public static void Execute(string project, bool json = false)
+    public static void Execute(string? project = null, bool json = false)
     {
-        var result = Diagnose(project);
-        var analysis = Analyze(project, result);
+        if (!CommandRunner.TryResolveProject(project, out var resolvedProject, out var failureResponse))
+        {
+            CommandRunner.PrintResponse(failureResponse!, json);
+            Environment.ExitCode = 1;
+            return;
+        }
+
+        var result = Diagnose(resolvedProject);
+        var analysis = Analyze(resolvedProject, result);
+        var selection = new EditorSelectionStore().GetCurrent();
 
         if (json)
         {
-            Console.WriteLine(JsonSerializer.Serialize(BuildJson(result, analysis), new JsonSerializerOptions { WriteIndented = true }));
+            Console.WriteLine(JsonSerializer.Serialize(BuildJson(resolvedProject, result, analysis, selection), new JsonSerializerOptions { WriteIndented = true }));
         }
         else
         {
-            Console.Write(RenderText(project, result, analysis));
+            Console.Write(RenderText(resolvedProject, result, analysis, selection));
         }
 
         Environment.ExitCode = result.IpcConnected ? 0 : 1;
@@ -214,7 +224,7 @@ public static class DoctorCommand
         return string.Join(Environment.NewLine, lines);
     }
 
-    internal static JsonObject BuildJson(DoctorSnapshot result, DoctorAnalysis analysis)
+    internal static JsonObject BuildJson(string project, DoctorSnapshot result, DoctorAnalysis analysis, EditorSelection? selection = null)
     {
         var results = new JsonObject
         {
@@ -263,10 +273,22 @@ public static class DoctorCommand
             ["recommendations"] = ToJsonArray(analysis.Recommendations)
         };
 
+        if (selection != null)
+        {
+            results["selection"] = new JsonObject
+            {
+                ["projectPath"] = selection.ProjectPath,
+                ["unityPid"] = selection.UnityPid,
+                ["selectionMode"] = selection.SelectionMode,
+                ["selectedAt"] = selection.SelectedAt,
+                ["matchesRequestedProject"] = MatchesProjectPath(selection.ProjectPath, project)
+            };
+        }
+
         return results;
     }
 
-    internal static string RenderText(string project, DoctorSnapshot result, DoctorAnalysis analysis)
+    internal static string RenderText(string project, DoctorSnapshot result, DoctorAnalysis analysis, EditorSelection? selection = null)
     {
         var lines = new List<string>
         {
@@ -301,6 +323,18 @@ public static class DoctorCommand
         lines.Add(result.BuildStateExists
             ? $"  \u2713 Build transition state: {result.BuildStateCount} file(s), oldest {result.BuildStateOldestAgeMinutes:n1} min"
             : $"  \u2713 Build transition state: none ({result.BuildStateDirectory})");
+
+        if (selection != null)
+        {
+            var matchLabel = MatchesProjectPath(selection.ProjectPath, project)
+                ? "matches requested project"
+                : "differs from requested project";
+            lines.Add($"  \u2713 Current selection: {selection.ProjectPath} ({matchLabel})");
+            if (selection.UnityPid.HasValue)
+                lines.Add($"    Selected PID: {selection.UnityPid.Value}");
+            if (!string.IsNullOrWhiteSpace(selection.SelectionMode))
+                lines.Add($"    Selection mode: {selection.SelectionMode}");
+        }
 
         if (analysis.LastSuccess != null || analysis.RecentFailures.Count > 0 || analysis.RepeatedStatusCodes.Count > 0)
         {
@@ -442,5 +476,26 @@ public static class DoctorCommand
     private static string ShortenId(string id)
     {
         return id.Length > 8 ? id[..8] : id;
+    }
+
+    private static bool MatchesProjectPath(string? candidatePath, string projectPath)
+    {
+        if (string.IsNullOrWhiteSpace(candidatePath) || string.IsNullOrWhiteSpace(projectPath))
+            return false;
+
+        if (string.Equals(candidatePath, projectPath, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        try
+        {
+            return string.Equals(
+                Constants.NormalizeProjectPath(candidatePath),
+                Constants.NormalizeProjectPath(projectPath),
+                StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

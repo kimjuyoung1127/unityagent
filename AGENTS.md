@@ -37,6 +37,11 @@
 - `Commands/` — PingCommand, StatusCommand, BuildCommand, TestCommand, CheckCommand, EditorCommands, InitCommand, ToolsCommand
 - `Output/` — ConsoleOutput, JsonOutput
 
+### src/Unityctl.Mcp (net10.0)
+네이티브 MCP 서버. 얇은 도구 레이어에서 Core를 호출한다.
+- `Tools/` — `unityctl_query`, `unityctl_run`, `unityctl_schema`, `unityctl_status`, `unityctl_watch` 등 top-level MCP 도구
+- `Program.cs` — stdio MCP 서버 부트스트랩
+
 ### src/Unityctl.Plugin (Unity UPM)
 Unity Editor 브릿지. `dotnet build` 불가 — Unity 내에서만 컴파일.
 - `Editor/Ipc/` — IpcServer, IpcRequestRouter, PipeNameHelper, MessageFraming
@@ -49,6 +54,7 @@ Unity Editor 브릿지. `dotnet build` 불가 — Unity 내에서만 컴파일.
 - `Unityctl.Shared.Tests` — 프로토콜 roundtrip, typed accessor, command catalog
 - `Unityctl.Core.Tests` — PipeName, RetryPolicy, IPC Transport, platform helpers
 - `Unityctl.Cli.Tests` — PlatformFactory, EditorDiscovery, AsyncCommandRunner, tools metadata, command runner
+- `Unityctl.Mcp.Tests` — MCP 도구 등록, black-box stdio 서버 검증
 - `Unityctl.Integration.Tests` — Black-box CLI 테스트
 
 ## Authoring Rule

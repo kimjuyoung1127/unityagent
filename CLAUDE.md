@@ -13,7 +13,7 @@ unityctl 작업 시작 시 가장 먼저 읽는 진입 문서입니다.
 4. `docs/ref/phase-roadmap.md`
 5. `docs/ref/code-patterns.md` (코드 작성 전 필수)
 
-## 현재 상태 (2026-03-19)
+## 현재 상태 (2026-03-20)
 - Phase 0~1B: Done
 - Phase 1C (CI/CD): Done
 - Phase 2A/2A+: Done (Foundation + Tools Metadata)
@@ -42,13 +42,19 @@ unityctl 작업 시작 시 가장 먼저 읽는 진입 문서입니다.
 - MCP Context Optimization (C1 QueryTool + C2 Schema Category + C3 Description 경량화): Done (33→12 MCP 도구)
 - Script Patch v2 (script patch — 줄 단위 삽입/삭제/교체): Done
 - Script v2 (script-get-errors, script-find-refs, script-rename-symbol): Done
-- Project Validate (project-validate — 게임 준비 상태 검증): Done
-- Mesh Create Primitive (mesh-create-primitive — 기본 3D 도형 생성): Done
+- UI Read Slice 1 (`ui find`, `ui get`, UGUI-first): Done
+- UI Interaction Slice 1 (`ui toggle`, `ui input`, deterministic state set): Done
+- Project Validate (`project validate` — 게임 준비 상태 검증): Done
+- Mesh Create Primitive (`mesh create-primitive` — 기본 3D 도형 생성): Done
+- Multi-Instance Routing Phase 1 (`editor current/select` + project-path selection fallback + target metadata): Done
+- Production Domain Expansion (camera list/get, texture get/set-import-settings, scriptableobject find/get/set-property, shader find/get-properties — 9개 명령): Done
+- Visual Verification v2 Phase 1 (`workflow verify` + artifact-first verification bundle): Done
+- Visual Verification v2 Phase 1.5 (`playSmoke` + game-camera capture after settle): Done
 
 최근 확정 사항 (최신 3개만 표시, 전체 이력은 `docs/internal/DEVELOPMENT.md` "슬라이스 이력" 참조):
-- Mesh Create Primitive (2026-03-19): `mesh-create-primitive` (Cube/Sphere/Plane/Cylinder/Capsule/Quad + position/rotation/scale/material/parent). ObjectFactory 기반 자동 Undo. Unity 실측 4/4 + Undo 3/3 통과. 600개 dotnet 테스트.
-- Project Validate (2026-03-19): `project-validate` (compile, buildScenes, camera, light, console, editorState 6개 체크). Unity 실측 2/2 통과. 581개 dotnet 테스트.
-- Script v2 (2026-03-19): `script-get-errors` (CompilerMessage 수집), `script-find-refs` (단어 경계 텍스트 탐색), `script-rename-symbol` (일괄 리네이밍+파일명+dryRun). Unity 실측 7/7 통과. 558개 dotnet 테스트.
+- Production Domain Expansion (2026-03-20): `camera-list/get`, `texture-get/set-import-settings`, `scriptableobject-find/get/set-property`, `shader-find/get-properties` (9개 명령, 4개 슬라이스). 45개 신규 테스트.
+- Multi-Instance Routing Phase 1 (2026-03-20): `editor current/select` + `editor instances` + project-path selection fallback + target metadata.
+- Mesh Create Primitive (2026-03-19): `mesh-create-primitive` (Cube/Sphere/Plane/Cylinder/Capsule/Quad + position/rotation/scale/material/parent). ObjectFactory 기반 자동 Undo.
 
 ## 실행 규칙 (MUST)
 1. 기존 코드/타입/유틸 우선 재사용, 중복 구현 금지
@@ -138,8 +144,14 @@ unityctl.slnx
 | **MCP Context Opt** | ✅ 완료 | **C1 QueryTool** (22 read→1 통합) + **C2 Schema Category** + **C3 Description 경량화** (33→12 MCP 도구) |
 | **Script Patch v2** | ✅ 완료 | **script patch** (startLine/deleteCount/insertContent, 줄 단위 부분 편집) |
 | **Script v2** | ✅ 완료 | **script-get-errors** (CompilerMessage 구조화) + **script-find-refs** (단어 경계 텍스트 탐색) + **script-rename-symbol** (일괄 리네이밍+dryRun) |
-| **Project Validate** | ✅ 완료 | **project-validate** (compile, buildScenes, camera, light, console, editorState 6개 체크) |
-| **Mesh Primitive** | ✅ 완료 | **mesh-create-primitive** (Cube/Sphere/Plane/Cylinder/Capsule/Quad + transform + material + Undo) |
+| **UI Read Slice 1** | ✅ 완료 | **ui find/get** (UGUI-first inspection) |
+| **UI Interaction Slice 1** | ✅ 완료 | **ui toggle/input** (deterministic state set) |
+| **Project Validate** | ✅ 완료 | **project validate** (compile, buildScenes, camera, light, console, editorState 6개 체크) |
+| **Mesh Primitive** | ✅ 완료 | **mesh create-primitive** (Cube/Sphere/Plane/Cylinder/Capsule/Quad + transform + material + Undo) |
+| **Multi-Instance Routing Phase 1** | ✅ 완료 | **editor current/select** + project-less `ping/status/check/doctor` fallback + target metadata |
+| **Production Domain Expansion** | ✅ 완료 | **camera list/get** + **texture get/set-import-settings** + **scriptableobject find/get/set-property** + **shader find/get-properties** (9개 명령) |
+| **Visual Verification v2 Phase 1** | ✅ 완료 | **workflow verify** + `projectValidate` + `capture` + `imageDiff` + `consoleWatch` + `uiAssert` |
+| **Visual Verification v2 Phase 1.5** | ✅ 완료 | **playSmoke** + play settle + console evidence + game-camera capture |
 
 ## Source of Truth 문서
 - 탐색 인덱스: `AGENTS.md`

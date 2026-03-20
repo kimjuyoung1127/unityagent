@@ -39,7 +39,11 @@ public static class AsyncCommandRunner
         try
         {
             sessionManager = new SessionManager(new NdjsonSessionStore());
-            var session = await sessionManager.StartAsync(request.Command, project, ct: ct);
+            var session = await sessionManager.StartAsync(
+                request.Command,
+                Constants.NormalizeProjectPath(project),
+                pipeName: Constants.GetPipeName(project),
+                ct: ct);
             sessionId = session.Id;
         }
         catch
@@ -152,7 +156,7 @@ public static class AsyncCommandRunner
             {
                 Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 Operation = request.Command,
-                Project = project,
+                Project = Constants.NormalizeProjectPath(project),
                 StatusCode = (int)response.StatusCode,
                 DurationMs = durationMs,
                 RequestId = response.RequestId,

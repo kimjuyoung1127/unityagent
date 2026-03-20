@@ -1,4 +1,6 @@
 using Unityctl.Core.Transport;
+using Unityctl.Core.Platform;
+using Unityctl.Shared.Models;
 using Unityctl.Shared.Protocol;
 using Xunit;
 
@@ -42,5 +44,30 @@ public sealed class CommandExecutorReadinessTests
         Assert.Contains("ui input", response.Message);
         Assert.True(response.Data!["requiresIpcReady"]!.GetValue<bool>());
         Assert.Contains("deterministically", response.Data["followUpAction"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void AttachTargetMetadata_AddsNormalizedTargetBlock()
+    {
+        var response = CommandExecutor.AttachTargetMetadata(
+            CommandResponse.Ok("ok"),
+            @"C:\Users\gmdqn\RobotApp",
+            "ipc",
+            new UnityEditorInfo
+            {
+                Version = "6000.0.64f1",
+                Location = @"C:\Program Files\Unity\Hub\Editor\6000.0.64f1"
+            },
+            new UnityProcessInfo
+            {
+                ProcessId = 2944,
+                ProjectPath = @"C:\Users\gmdqn\RobotApp"
+            });
+
+        Assert.NotNull(response.Data);
+        Assert.Equal("ipc", response.Data!["target"]!["transport"]!.GetValue<string>());
+        Assert.Equal("6000.0.64f1", response.Data["target"]!["editorVersion"]!.GetValue<string>());
+        Assert.Contains("unityctl_", response.Data["target"]!["pipeName"]!.GetValue<string>());
+        Assert.Equal(2944, response.Data["target"]!["unityPid"]!.GetValue<int>());
     }
 }

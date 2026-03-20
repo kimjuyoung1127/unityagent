@@ -7,10 +7,10 @@
 
 ### The execution layer for AI-driven game development.
 
-Give your AI agent **118 commands** to build Unity scenes, write C# scripts, validate builds, and ship games — with automatic rollback when things go wrong.
+Give your AI agent **131 commands** to build Unity scenes, write C# scripts, validate builds, and ship games — with automatic rollback when things go wrong.
 
 ```
-118 CLI commands · 12 MCP tools · 624 tests · Windows / macOS / Linux
+131 CLI commands · 12 MCP tools · 689 tests · Windows / macOS / Linux
 ```
 
 <p align="center">
@@ -55,16 +55,16 @@ For AI agents, this means a **closed-loop automation cycle** — the agent doesn
 
 ```bash
 # Agent creates scene structure
-unityctl scene create --name "Level01" --project $P
+unityctl scene create --path "Assets/Scenes/Level01.unity" --project $P
 unityctl mesh create-primitive --type Plane --name "Floor" --scale "[10,1,10]" --project $P
 unityctl mesh create-primitive --type Cube --name "Wall" --position "[5,1,0]" --scale "[0.5,2,10]" --project $P
 unityctl gameobject create --name "PlayerSpawn" --project $P
-unityctl component add --target "PlayerSpawn" --type "Transform" --project $P
+unityctl component add --id "<PlayerSpawnId>" --type "BoxCollider" --project $P
 
 # Agent verifies the scene
 unityctl scene hierarchy --project $P --json      # check structure
-unityctl screenshot --project $P                   # visual verification
-unityctl project-validate --project $P --json      # camera? lights? errors?
+unityctl screenshot capture --project $P           # visual verification
+unityctl project validate --project $P --json      # camera? lights? errors?
 ```
 
 ### Script Authoring with Compile Verification
@@ -73,7 +73,7 @@ unityctl project-validate --project $P --json      # camera? lights? errors?
 
 ```bash
 # Agent writes code
-unityctl script create --name "PlayerMovement" --template MonoBehaviour --project $P
+unityctl script create --path "Assets/Scripts/PlayerMovement.cs" --className "PlayerMovement" --project $P
 unityctl script patch --path "Assets/Scripts/PlayerMovement.cs" \
   --startLine 8 --insertContent "public float speed = 5f;" --project $P
 
@@ -88,7 +88,7 @@ unityctl script get-errors --project $P --json     # structured CS errors
 > _"Set up physics layers for Player, Enemy, and Projectile — roll back if anything fails"_
 
 ```bash
-unityctl batch-execute --project $P --rollbackOnFailure true --commands '[
+unityctl batch execute --project $P --rollbackOnFailure true --commands '[
   {"command": "layer-set", "parameters": {"index": 8, "name": "Player"}},
   {"command": "layer-set", "parameters": {"index": 9, "name": "Enemy"}},
   {"command": "layer-set", "parameters": {"index": 10, "name": "Projectile"}},
@@ -108,9 +108,9 @@ unityctl batch-execute --project $P --rollbackOnFailure true --commands '[
 ```bash
 # Agent reads the failure, fixes it, validates again
 unityctl gameobject create --name "Main Camera" --project $P
-unityctl component add --target "Main Camera" --type "Camera" --project $P
-unityctl gameobject set-tag --target "Main Camera" --tag "MainCamera" --project $P
-unityctl project-validate --project $P --json   # valid: true
+unityctl component add --id "<MainCameraId>" --type "Camera" --project $P
+unityctl gameobject set-tag --id "<MainCameraId>" --tag "MainCamera" --project $P
+unityctl project validate --project $P --json   # valid: true
 ```
 
 ---
@@ -120,13 +120,13 @@ unityctl project-validate --project $P --json   # valid: true
 | | unityctl | Existing Unity MCP |
 |---|---|---|
 | **Schema overhead** | **5 KB** per session (9x smaller) | 45 KB+ loaded every turn |
-| **Validation loop** | `project-validate` + `scene-diff` + `screenshot` | Agent flies blind |
+| **Validation loop** | `project validate` + `scene diff` + `screenshot capture` | Agent flies blind |
 | **Error recovery** | `script get-errors` with file/line/column | Raw console output or nothing |
-| **Safe experimentation** | `batch-execute --rollbackOnFailure` + `undo` | No rollback — mistakes are permanent |
+| **Safe experimentation** | `batch execute --rollbackOnFailure` + `undo` | No rollback — mistakes are permanent |
 | **Connection stability** | Named Pipe — survives Domain Reload | WebSocket drops, reconnect needed |
 | **CI/CD** | `check` / `test` / `build --dry-run` work headless | Editor must be open |
 | **Diagnostics** | `doctor` classifies failures + suggests next steps | "Connection failed" |
-| **Commands** | **118** (read + write + validate + diagnose) | ~34-200 tools |
+| **Commands** | **131** (read + write + validate + diagnose) | ~34-200 tools |
 | **Audit trail** | NDJSON flight recorder for every command | No history |
 | **Runtime** | Native .NET — no Python/TS bridge | Bridge overhead |
 | **Install** | `dotnet tool install -g unityctl` | Node.js + npm + port config |
@@ -140,9 +140,34 @@ AI agent costs are dominated by tool schemas sent every turn. unityctl uses **on
   <img src="docs/assets/token-efficiency.svg" alt="83x less tokens per turn" width="600">
 </p>
 
-The 12 MCP tools cover the full 118-command surface through `unityctl_query` (read), `unityctl_run` (write), and `unityctl_schema` (lookup).
+The 12 MCP tools cover the full 131-command surface through `unityctl_query` (read), `unityctl_run` (write), and `unityctl_schema` (lookup).
 
 ---
+
+## Selection-aware Routing
+
+```bash
+# Pin the current Unity project once
+unityctl editor select --project /path/to/project
+
+# Or pin a running Unity PID when it maps to a single project
+unityctl editor select --pid 55028
+
+# Inspect the current selection
+unityctl editor current --json
+
+# See running Unity instances with PID / project / IPC status
+unityctl editor instances --json
+
+# These CLI commands can now omit --project
+unityctl ping --json
+unityctl status --json
+unityctl check --json
+unityctl doctor --json
+
+# Run a small verification bundle (artifacts-first)
+unityctl workflow verify --file verify.json --project /path/to/project --json
+```
 
 ## Install
 
@@ -190,11 +215,11 @@ unityctl status --project /path/to/project --json
 
 # 3. Start building
 unityctl gameobject create --name "Player" --project /path/to/project
-unityctl component add --target "Player" --type "Rigidbody" --project /path/to/project
+unityctl component add --id "<PlayerId>" --type "Rigidbody" --project /path/to/project
 unityctl scene save --project /path/to/project
 
 # 4. Validate
-unityctl project-validate --project /path/to/project --json
+unityctl project validate --project /path/to/project --json
 
 # 5. Build
 unityctl build --project /path/to/project --dry-run    # 13 preflight checks
@@ -236,9 +261,9 @@ Add to your Claude Code / Cursor / VS Code MCP config:
 
 ---
 
-## Commands (118)
+## Commands (131)
 
-### Core (9)
+### Core (13)
 
 | Command | Description |
 |---------|-------------|
@@ -248,9 +273,13 @@ Add to your Claude Code / Cursor / VS Code MCP config:
 | `build` | Build player with `--dry-run` preflight (13 checks) |
 | `test` | Run EditMode / PlayMode tests |
 | `doctor` | Diagnose connectivity + suggest recovery steps |
-| `project-validate` | Game readiness check (compile, scenes, camera, lights, console, editor) |
+| `project validate` | Game readiness check (compile, scenes, camera, lights, console, editor) |
 | `init` | Install plugin to Unity project |
 | `editor list` | Discover installed Unity editors |
+| `editor instances` | List running Unity Editor instances |
+| `editor current` | Show the selected Unity project target |
+| `editor select` | Select a Unity project target, or a unique running PID, for project-less CLI routing |
+| `workflow verify` | Run artifact-first verification steps (`projectValidate`, `capture`, `imageDiff`, `consoleWatch`, `uiAssert`, `playSmoke`) |
 
 <details>
 <summary><strong>Scene & GameObject</strong> (19)</summary>
@@ -331,7 +360,7 @@ Add to your Claude Code / Cursor / VS Code MCP config:
 
 | Command | Description |
 |---------|-------------|
-| `play-mode` | Start/stop/pause play mode |
+| `play start/stop/pause` | Start, stop, or pause play mode |
 | `editor pause` | Toggle editor pause |
 | `editor focus-gameview` | Focus Game View |
 | `editor focus-sceneview` | Focus Scene View |
@@ -410,7 +439,7 @@ Add to your Claude Code / Cursor / VS Code MCP config:
 
 ```
 AI Agent (LLM)                unityctl-mcp              unityctl CLI             Unity Editor
-Claude / GPT / Gemini         12 MCP tools              118 commands             Plugin (IPC)
+Claude / GPT / Gemini         12 MCP tools              131 commands             Plugin (IPC)
         |                          |                          |                       |
         |--- MCP (stdio) -------->|                          |                       |
         |                          |--- CLI invocation ----->|                       |

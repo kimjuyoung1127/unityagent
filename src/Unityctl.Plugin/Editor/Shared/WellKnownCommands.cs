@@ -118,7 +118,7 @@ namespace Unityctl.Plugin.Editor.Shared
         public const string BuildSettingsSetScenes = "build-settings-set-scenes";
 
         // Screenshot / Visual Feedback — P3
-        public const string Screenshot = "screenshot";
+    public const string Screenshot = "screenshot";
 
         // Tags & Layers
         public const string TagList = "tag-list";
@@ -161,5 +161,22 @@ namespace Unityctl.Plugin.Editor.Shared
         public const string PhysicsSetSettings = "physics-set-settings";
         public const string PhysicsGetCollisionMatrix = "physics-get-collision-matrix";
         public const string PhysicsSetCollisionMatrix = "physics-set-collision-matrix";
+
+        // Camera
+        public const string CameraList = "camera-list";
+        public const string CameraGet = "camera-get";
+
+        // Texture Import
+        public const string TextureGetImportSettings = "texture-get-import-settings";
+        public const string TextureSetImportSettings = "texture-set-import-settings";
+
+        // ScriptableObject
+        public const string ScriptableObjectFind = "scriptableobject-find";
+        public const string ScriptableObjectGet = "scriptableobject-get";
+        public const string ScriptableObjectSetProperty = "scriptableobject-set-property";
+
+        // Shader
+        public const string ShaderFind = "shader-find";
+        public const string ShaderGetProperties = "shader-get-properties";
     }
 }

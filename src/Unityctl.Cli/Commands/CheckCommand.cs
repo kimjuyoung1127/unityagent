@@ -6,7 +6,7 @@ namespace Unityctl.Cli.Commands;
 
 public static class CheckCommand
 {
-    public static void Execute(string project, string type = "compile", bool json = false)
+    public static void Execute(string? project = null, string type = "compile", bool json = false)
     {
         var request = new CommandRequest
         {

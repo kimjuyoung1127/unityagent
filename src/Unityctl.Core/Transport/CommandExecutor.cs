@@ -4,6 +4,7 @@ using Unityctl.Core.Retry;
 using Unityctl.Shared.Protocol;
 using Unityctl.Shared.Transport;
 using System.Text.Json.Nodes;
+using Unityctl.Shared.Models;
 
 namespace Unityctl.Core.Transport;
 
@@ -55,9 +56,13 @@ public sealed class CommandExecutor
     {
         // IPC first: probe checks if an Editor with IPC server is running
         await using var ipc = new IpcTransport(projectPath);
+        var processDetector = new UnityProcessDetector(_platform);
+        var process = processDetector.FindProcessForProject(projectPath);
+        var editor = _discovery.FindEditorForProject(projectPath);
         if (await ipc.ProbeAsync(ct))
         {
-            return await ipc.SendAsync(request, ct);
+            var response = await ipc.SendAsync(request, ct);
+            return AttachTargetMetadata(response, projectPath, "ipc", editor, process);
         }
 
         if (_platform.IsProjectLocked(projectPath))
@@ -71,12 +76,60 @@ public sealed class CommandExecutor
                 }
             }
 
-            return BuildInteractiveBusyResponse(projectPath, request.Command);
+            var pending = BuildInteractiveBusyResponse(projectPath, request.Command);
+            return AttachTargetMetadata(pending, projectPath, null, editor, process);
         }
 
         // Fallback: batch transport (only when probe fails, NOT on SendAsync failure)
         await using var batch = new BatchTransport(_platform, _discovery, projectPath);
-        return await batch.SendAsync(request, ct);
+        var batchResponse = await batch.SendAsync(request, ct);
+        return AttachTargetMetadata(batchResponse, projectPath, "batch", editor, process);
+    }
+
+    internal static CommandResponse AttachTargetMetadata(
+        CommandResponse response,
+        string projectPath,
+        string? transport,
+        UnityEditorInfo? editor,
+        UnityProcessInfo? process)
+    {
+        response.Data ??= new JsonObject();
+        response.Data["target"] = BuildTargetMetadata(projectPath, transport, editor, process);
+        return response;
+    }
+
+    internal static JsonObject BuildTargetMetadata(
+        string projectPath,
+        string? transport,
+        UnityEditorInfo? editor,
+        UnityProcessInfo? process)
+    {
+        var target = new JsonObject
+        {
+            ["projectPath"] = Unityctl.Shared.Constants.NormalizeProjectPath(projectPath),
+            ["pipeName"] = Unityctl.Shared.Constants.GetPipeName(projectPath)
+        };
+
+        if (!string.IsNullOrWhiteSpace(transport))
+            target["transport"] = transport;
+
+        if (editor != null)
+        {
+            target["editorVersion"] = editor.Version;
+            target["editorLocation"] = editor.Location;
+        }
+
+        if (process != null)
+        {
+            target["unityPid"] = process.ProcessId;
+            target["isRunning"] = true;
+        }
+        else
+        {
+            target["isRunning"] = false;
+        }
+
+        return target;
     }
 
     internal static CommandResponse BuildInteractiveBusyResponse(string projectPath, string command)

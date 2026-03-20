@@ -1,5 +1,6 @@
 using Unityctl.Cli.Commands;
 using Unityctl.Core.Diagnostics;
+using Unityctl.Core.EditorRouting;
 using Unityctl.Shared.Protocol;
 using Xunit;
 
@@ -171,6 +172,11 @@ public class DoctorCommandTests
     public void BuildJson_IncludesSummaryRecentActivitySessionsAndRecommendations()
     {
         var snapshot = CreateSnapshot();
+        var selection = new EditorSelection
+        {
+            ProjectPath = @"c:/users/gmdqn/robotapp",
+            SelectedAt = DateTimeOffset.UtcNow.ToString("O")
+        };
         var analysis = new DoctorAnalysis
         {
             Classification = "transport-degraded",
@@ -215,13 +221,14 @@ public class DoctorCommandTests
             ]
         };
 
-        var json = DoctorCommand.BuildJson(snapshot, analysis);
+        var json = DoctorCommand.BuildJson(@"C:\Users\gmdqn\robotapp", snapshot, analysis, selection);
 
         Assert.Equal("transport-degraded", json["summary"]?["classification"]?.GetValue<string>());
         Assert.True(json["recentActivity"]?["batchFallbackSignature"]?.GetValue<bool>());
         Assert.True(json["recentActivity"]?["pipeErrorsDetected"]?.GetValue<bool>());
         Assert.Single(json["activeSessions"]!.AsArray());
         Assert.Single(json["recommendations"]!.AsArray());
+        Assert.True(json["selection"]?["matchesRequestedProject"]?.GetValue<bool>());
     }
 
     [CliTestFact]

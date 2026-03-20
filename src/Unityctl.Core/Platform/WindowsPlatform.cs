@@ -1,9 +1,15 @@
+using System.Management;
+using System.Text.RegularExpressions;
 using Unityctl.Shared.Models;
 
 namespace Unityctl.Core.Platform;
 
 public sealed class WindowsPlatform : PlatformServicesBase
 {
+    private static readonly Regex ProjectPathRegex = new(
+        @"(?:^|\s)-projectPath\s+(?:""(?<quoted>[^""]+)""|(?<plain>[^\s]+))",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
     public override string GetUnityHubEditorsJsonPath()
     {
         var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
@@ -23,8 +29,86 @@ public sealed class WindowsPlatform : PlatformServicesBase
 
     public override IEnumerable<UnityProcessInfo> FindRunningUnityProcesses()
     {
-        // Phase 2B: WMI Win32_Process query
-        yield break;
+        if (!OperatingSystem.IsWindows())
+            return [];
+
+        var processes = new List<UnityProcessInfo>();
+        ManagementObjectCollection? results = null;
+        try
+        {
+            using var searcher = new ManagementObjectSearcher(
+                "SELECT ProcessId, CommandLine, ExecutablePath FROM Win32_Process WHERE Name = 'Unity.exe'");
+            results = searcher.Get();
+            foreach (ManagementObject process in results)
+            {
+                var commandLine = process["CommandLine"] as string;
+                var executablePath = process["ExecutablePath"] as string;
+                var processId = Convert.ToInt32(process["ProcessId"]);
+
+                processes.Add(new UnityProcessInfo
+                {
+                    ProcessId = processId,
+                    ProjectPath = TryParseProjectPath(commandLine),
+                    Version = TryParseVersionFromExecutablePath(executablePath),
+                    ExecutablePath = executablePath
+                });
+            }
+        }
+        catch
+        {
+            return [];
+        }
+        finally
+        {
+            results?.Dispose();
+        }
+
+        return processes;
     }
 
+    internal static string? TryParseProjectPath(string? commandLine)
+    {
+        if (string.IsNullOrWhiteSpace(commandLine))
+            return null;
+
+        var match = ProjectPathRegex.Match(commandLine);
+        if (!match.Success)
+            return null;
+
+        var value = match.Groups["quoted"].Success
+            ? match.Groups["quoted"].Value
+            : match.Groups["plain"].Value;
+
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        try
+        {
+            return Path.GetFullPath(value);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    internal static string? TryParseVersionFromExecutablePath(string? executablePath)
+    {
+        if (string.IsNullOrWhiteSpace(executablePath))
+            return null;
+
+        try
+        {
+            var editorDirectory = Path.GetDirectoryName(executablePath);
+            if (string.IsNullOrWhiteSpace(editorDirectory))
+                return null;
+
+            var versionDirectory = Directory.GetParent(editorDirectory);
+            return versionDirectory?.Name;
+        }
+        catch
+        {
+            return null;
+        }
+    }
 }

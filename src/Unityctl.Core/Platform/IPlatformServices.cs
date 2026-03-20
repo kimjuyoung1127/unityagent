@@ -18,4 +18,5 @@ public sealed class UnityProcessInfo
     public int ProcessId { get; set; }
     public string? ProjectPath { get; set; }
     public string? Version { get; set; }
+    public string? ExecutablePath { get; set; }
 }

@@ -32,6 +32,16 @@
 | Physics Settings | physics get-settings/set-settings/get-collision-matrix/set-collision-matrix (4개 명령) | P4 | Done | docs/ref/phase-roadmap.md | 2026-03-19 |
 | Editor Utility 확장 + Script List | editor pause/focus-gameview/focus-sceneview + script list (4개 명령) | P0 | Done | docs/ref/phase-roadmap.md | 2026-03-19 |
 | NuGet v0.2.0 배포 | dotnet tool install -g unityctl/unityctl-mcp + GitHub Release 자동화 | P0 | Done | release.yml | 2026-03-19 |
+| MCP Context Optimization | C1 QueryTool + C2 Schema Category + C3 Description 경량화 (33→12 MCP 도구) | P0 | Done | docs/ref/phase-roadmap.md | 2026-03-19 |
+| Script Patch v2 | script patch (줄 단위 삽입/삭제/교체) | P0 | Done | docs/ref/phase-roadmap.md | 2026-03-19 |
+| Script v2 | script-get-errors/find-refs/rename-symbol (진단 + 리팩터링) | P0 | Done | docs/ref/phase-roadmap.md | 2026-03-19 |
+| Project Validate | project validate (게임 준비 상태 6개 체크) | P0 | Done | docs/ref/phase-roadmap.md | 2026-03-19 |
+| UI Read Slice 1 | ui find/get (UGUI-first inspection) | P1 | Done | docs/ref/phase-roadmap.md | 2026-03-19 |
+| UI Interaction Slice 1 | ui toggle/input (deterministic state set) | P1 | Done | docs/ref/phase-roadmap.md | 2026-03-19 |
+| Mesh Primitive Create | mesh create-primitive (built-in primitives) | P1 | Done | docs/ref/phase-roadmap.md | 2026-03-19 |
+| Multi-Instance Routing Phase 1 | editor current/select + project-path selection fallback + target metadata | P0 | Done | docs/ref/phase-roadmap.md | 2026-03-20 |
+| Production Domain Expansion | camera list/get, texture get/set-import-settings, scriptableobject find/get/set-property, shader find/get-properties (9개 명령) | P1 | Done | docs/ref/phase-roadmap.md | 2026-03-20 |
+| Visual Verification v2 Phase 1 | workflow verify + projectValidate/capture/imageDiff/consoleWatch/uiAssert/playSmoke | P0 | Done | docs/ref/phase-roadmap.md | 2026-03-20 |
 
 ## Zero-Drift 규칙
 1. `src/` 구조를 코드 모듈 Source of Truth로 간주한다.

@@ -69,15 +69,22 @@ The MCP server currently exposes 12 top-level tools, including `unityctl_query`,
 # Human-readable list
 unityctl tools
 
-# Machine-readable JSON (all 118 commands with parameter schemas)
+# Machine-readable JSON (all 131 commands with parameter schemas)
 unityctl tools --json
 
-# Schema for a specific command
-unityctl schema --command "gameobject create" --json
+# Full CLI schema
+unityctl schema
+
+# Specific command schema over MCP
+# unityctl_schema(command="gameobject-create")
 ```
 
 AI agents should call `unityctl tools --json` or the MCP `unityctl_schema` tool to dynamically discover available commands and their parameters.
 For UI inspection, prefer `ui find`/`ui get` over generic `gameobject find/get` when you specifically need Canvas ancestry, RectTransform data, or control state. For UI state changes, `ui toggle` and `ui input` set `Toggle.isOn` and `InputField.text` deterministically; they do not emulate clicks or keystrokes yet.
+For CLI routing, `editor select` pins a project locally so `ping`, `status`, `check`, and `doctor` can omit `--project`.
+When you already know a running Unity PID, `editor select --pid <pid>` can pin that process only when it maps to a single project path.
+Use `editor instances` when you need visibility into currently running Unity processes before pinning or diagnosing routing.
+For small artifact-first verification bundles, `workflow verify` now supports `projectValidate`, `capture`, `imageDiff`, `consoleWatch`, `uiAssert`, and `playSmoke`.
 
 ## Common Workflows
 
@@ -111,10 +118,31 @@ unityctl ui toggle --project "/path/to/project" --id "<GlobalObjectId>" --value 
 unityctl ui input --project "/path/to/project" --id "<GlobalObjectId>" --text "Alpha Beta" --mode auto --json
 
 # Get component properties
-unityctl component get --project "/path/to/project" --target "Main Camera" --component "Camera" --json
+unityctl component get --project "/path/to/project" --componentId "<ComponentId>" --json
 
 # View dependency graph
 unityctl asset reference-graph --project "/path/to/project" --path "Assets/Prefabs/Player.prefab" --json
+
+# List cameras in loaded scenes
+unityctl camera list --project "/path/to/project" --json
+
+# Get camera details
+unityctl camera get --project "/path/to/project" --id "<GlobalObjectId>" --json
+
+# Find ScriptableObject assets
+unityctl scriptableobject find --project "/path/to/project" --type "GameConfig" --json
+
+# Get ScriptableObject properties
+unityctl scriptableobject get --project "/path/to/project" --path "Assets/Data/config.asset" --json
+
+# Find shaders
+unityctl shader find --project "/path/to/project" --filter "Standard" --json
+
+# Get shader properties
+unityctl shader get-properties --project "/path/to/project" --name "Standard" --json
+
+# Get texture import settings
+unityctl texture get-import-settings --project "/path/to/project" --path "Assets/Textures/icon.png" --json
 ```
 
 ### Create and modify
@@ -124,10 +152,10 @@ unityctl asset reference-graph --project "/path/to/project" --path "Assets/Prefa
 unityctl gameobject create --project "/path/to/project" --name "Enemy" --json
 
 # Add a component
-unityctl component add --project "/path/to/project" --target "Enemy" --component "BoxCollider" --json
+unityctl component add --project "/path/to/project" --id "<GameObjectId>" --type "BoxCollider" --json
 
 # Set a component property
-unityctl component set-property --project "/path/to/project" --target "Enemy" --component "BoxCollider" --property "m_Size" --value "[2,2,2]" --json
+unityctl component set-property --project "/path/to/project" --componentId "<ComponentId>" --property "m_Size" --value "[2,2,2]" --json
 
 # Create a primitive mesh
 unityctl mesh create-primitive --project "/path/to/project" --type Cube --name "EnemyBlockout" --position "[0,1,0]" --json
@@ -142,10 +170,10 @@ For quick blockouts or test geometry, `mesh create-primitive` creates Unity buil
 
 ```bash
 # Create a new script
-unityctl script create --project "/path/to/project" --name "EnemyAI" --json
+unityctl script create --project "/path/to/project" --path "Assets/Scripts/EnemyAI.cs" --className "EnemyAI" --json
 
 # Edit a script (whole-file replace)
-unityctl script edit --project "/path/to/project" --path "Assets/Scripts/EnemyAI.cs" --file ./EnemyAI.cs --json
+unityctl script edit --project "/path/to/project" --path "Assets/Scripts/EnemyAI.cs" --contentFile ./EnemyAI.cs --json
 
 # Validate compilation
 unityctl script validate --project "/path/to/project" --json
@@ -193,7 +221,7 @@ unityctl scene diff --project "/path/to/project" --live --json
 
 ### Screenshot (MCP)
 
-The `unityctl_screenshot_capture` MCP tool captures Scene or Game View as base64 PNG/JPG — useful for visual verification in AI workflows.
+Screenshot capture is exposed through `unityctl_query` with `command="screenshot"`, returning Scene or Game View as base64 PNG/JPG for visual verification workflows.
 
 ## StatusCode Reference
 

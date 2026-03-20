@@ -9,7 +9,7 @@ unityctl.slnx
 ├── src/Unityctl.Cli      (net10.0)         CLI shell → dotnet tool "unityctl"
 ├── src/Unityctl.Mcp      (net10.0)         MCP server → dotnet tool "unityctl-mcp"
 ├── src/Unityctl.Plugin   (Unity UPM)       Editor bridge (IPC server)
-└── tests/*                                 624 xUnit tests
+└── tests/*                                 633 xUnit tests
 ```
 
 ## Dependency Direction
@@ -92,7 +92,7 @@ graph LR
     Core2 -->|IPC / Batch| Editor2
 ```
 
-33 MCP tools including `unityctl_run` (70 write commands via allowlist), `unityctl_schema`, `unityctl_asset_find`, `unityctl_gameobject_find`, `unityctl_screenshot_capture`, and more.
+12 MCP tools including `unityctl_query`, `unityctl_run`, `unityctl_schema`, `unityctl_status`, `unityctl_watch`, and the rest of the unified MCP surface.
 
 ## Wire Protocol
 

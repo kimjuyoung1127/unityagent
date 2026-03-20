@@ -94,7 +94,11 @@ internal sealed class RunTool(CommandExecutor executor)
         WellKnownCommands.NavMeshClear,
         // Physics
         WellKnownCommands.PhysicsSetSettings,
-        WellKnownCommands.PhysicsSetCollisionMatrix
+        WellKnownCommands.PhysicsSetCollisionMatrix,
+        // Texture Import
+        WellKnownCommands.TextureSetImportSettings,
+        // ScriptableObject
+        WellKnownCommands.ScriptableObjectSetProperty
     };
 
     [McpServerTool(Name = "unityctl_run")]
