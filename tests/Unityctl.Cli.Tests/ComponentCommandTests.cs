@@ -47,34 +47,48 @@ public class ComponentCommandTests
     [CliTestFact]
     public void Add_SetsCommandName()
     {
-        var request = ComponentCommand.CreateAddRequest("gid-go", "UnityEngine.Rigidbody");
+        var request = ComponentCommand.CreateAddRequest("gid-go", null, "UnityEngine.Rigidbody");
         Assert.Equal(WellKnownCommands.ComponentAdd, request.Command);
     }
 
     [CliTestFact]
     public void Add_SetsIdAndType()
     {
-        var request = ComponentCommand.CreateAddRequest("gid-go", "UnityEngine.BoxCollider");
+        var request = ComponentCommand.CreateAddRequest("gid-go", null, "UnityEngine.BoxCollider");
         Assert.Equal("gid-go", request.Parameters!["id"]?.GetValue<string>());
         Assert.Equal("UnityEngine.BoxCollider", request.Parameters!["type"]?.GetValue<string>());
     }
 
     [CliTestFact]
-    public void Add_EmptyId_Throws()
+    public void Add_WithName_SetsNameParam()
     {
-        Assert.Throws<ArgumentException>(() => ComponentCommand.CreateAddRequest("", "Rigidbody"));
+        var request = ComponentCommand.CreateAddRequest(null, "MyCube", "UnityEngine.Rigidbody");
+        Assert.Equal("MyCube", request.Parameters!["name"]?.GetValue<string>());
+        Assert.False(request.Parameters!.ContainsKey("id"));
+    }
+
+    [CliTestFact]
+    public void Add_NeitherIdNorName_Throws()
+    {
+        Assert.Throws<ArgumentException>(() => ComponentCommand.CreateAddRequest(null, null, "Rigidbody"));
+    }
+
+    [CliTestFact]
+    public void Add_EmptyIdAndName_Throws()
+    {
+        Assert.Throws<ArgumentException>(() => ComponentCommand.CreateAddRequest("", "", "Rigidbody"));
     }
 
     [CliTestFact]
     public void Add_EmptyType_Throws()
     {
-        Assert.Throws<ArgumentException>(() => ComponentCommand.CreateAddRequest("gid", ""));
+        Assert.Throws<ArgumentException>(() => ComponentCommand.CreateAddRequest("gid", null, ""));
     }
 
     [CliTestFact]
     public void Add_HasRequestId()
     {
-        var request = ComponentCommand.CreateAddRequest("gid", "Rigidbody");
+        var request = ComponentCommand.CreateAddRequest("gid", null, "Rigidbody");
         Assert.False(string.IsNullOrEmpty(request.RequestId));
     }
 

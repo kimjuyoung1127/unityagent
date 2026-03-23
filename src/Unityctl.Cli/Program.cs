@@ -214,8 +214,8 @@ app.Add("scene create", (
         bool json = false) =>
     SceneCommand.Create(project, path, template, mode, force, saveCurrentModified, json));
 
-app.Add("component add", (string project, string id, string type, bool json = false) =>
-    ComponentCommand.Add(project, id, type, json));
+app.Add("component add", (string project, string type, string? id = null, string? name = null, bool json = false) =>
+    ComponentCommand.Add(project, type, id, name, json));
 
 app.Add("component get", (string project, string componentId, string? property = null, bool full = false, bool json = false) =>
     ComponentCommand.Get(project, componentId, property, full, json));
@@ -225,6 +225,12 @@ app.Add("component remove", (string project, string componentId, bool json = fal
 
 app.Add("component set-property", (string project, string componentId, string property, string value, bool json = false) =>
     ComponentCommand.SetProperty(project, componentId, property, value, json));
+
+app.Add("component enable", (string project, string componentId, bool json = false) =>
+    ComponentCommand.Enable(project, componentId, json));
+
+app.Add("component disable", (string project, string componentId, bool json = false) =>
+    ComponentCommand.Disable(project, componentId, json));
 
 // Phase C-1: Asset CRUD
 app.Add("asset create", (string project, string path, string type, bool json = false) =>
@@ -529,8 +535,8 @@ app.Add("ui dropdown-set", (string project, string id, string value, string mode
     UiCommand.DropdownSet(project, id, value, mode, json));
 
 // Profiler — Phase C
-app.Add("profiler get-stats", (string project, bool json = false) =>
-    ProfilerCommand.GetStats(project, json));
+app.Add("profiler get-stats", (string project, bool detailed = false, bool json = false) =>
+    ProfilerCommand.GetStats(project, detailed, json));
 
 app.Add("profiler start", (string project, bool json = false) =>
     ProfilerCommand.Start(project, json));

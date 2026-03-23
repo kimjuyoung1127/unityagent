@@ -6,9 +6,9 @@ namespace Unityctl.Cli.Commands;
 
 public static class ProfilerCommand
 {
-    public static void GetStats(string project, bool json = false)
+    public static void GetStats(string project, bool detailed = false, bool json = false)
     {
-        var request = CreateGetStatsRequest();
+        var request = CreateGetStatsRequest(detailed);
         CommandRunner.Execute(project, request, json);
     }
 
@@ -24,12 +24,16 @@ public static class ProfilerCommand
         CommandRunner.Execute(project, request, json);
     }
 
-    internal static CommandRequest CreateGetStatsRequest()
+    internal static CommandRequest CreateGetStatsRequest(bool detailed = false)
     {
+        var parameters = new JsonObject();
+        if (detailed)
+            parameters["detailed"] = true;
+
         return new CommandRequest
         {
             Command = WellKnownCommands.ProfilerGetStats,
-            Parameters = new JsonObject()
+            Parameters = parameters
         };
     }
 

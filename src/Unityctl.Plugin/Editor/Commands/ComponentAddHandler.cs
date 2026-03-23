@@ -15,16 +15,21 @@ namespace Unityctl.Plugin.Editor.Commands
         {
 #if UNITY_EDITOR
             var goId = request.GetParam("id", null);
+            var goName = request.GetParam("name", null);
             var typeName = request.GetParam("type", null);
 
-            if (string.IsNullOrEmpty(goId))
-                return InvalidParameters("Parameter 'id' is required.");
+            if (string.IsNullOrEmpty(goId) && string.IsNullOrEmpty(goName))
+                return InvalidParameters("Either 'id' or 'name' parameter is required.");
             if (string.IsNullOrEmpty(typeName))
                 return InvalidParameters("Parameter 'type' is required.");
 
-            var go = GlobalObjectIdResolver.Resolve<UnityEngine.GameObject>(goId);
+            UnityEngine.GameObject go = null;
+            if (!string.IsNullOrEmpty(goId))
+                go = GlobalObjectIdResolver.Resolve<UnityEngine.GameObject>(goId);
+            if (go == null && !string.IsNullOrEmpty(goName))
+                go = UnityEngine.GameObject.Find(goName);
             if (go == null)
-                return Fail(StatusCode.NotFound, $"GameObject not found: {goId}");
+                return Fail(StatusCode.NotFound, $"GameObject not found: {goId ?? goName}");
 
             var prefabReject = PrefabGuard.RejectIfPrefab(go);
             if (prefabReject != null) return prefabReject;

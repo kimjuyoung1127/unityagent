@@ -12,9 +12,9 @@ public static class ComponentCommand
         CommandRunner.Execute(project, request, json);
     }
 
-    public static void Add(string project, string id, string type, bool json = false)
+    public static void Add(string project, string type, string? id = null, string? name = null, bool json = false)
     {
-        var request = CreateAddRequest(id, type);
+        var request = CreateAddRequest(id, name, type);
         CommandRunner.Execute(project, request, json);
     }
 
@@ -27,6 +27,18 @@ public static class ComponentCommand
     public static void SetProperty(string project, string componentId, string property, string value, bool json = false)
     {
         var request = CreateSetPropertyRequest(componentId, property, value);
+        CommandRunner.Execute(project, request, json);
+    }
+
+    public static void Enable(string project, string componentId, bool json = false)
+    {
+        var request = CreateSetPropertyRequest(componentId, "m_Enabled", "true");
+        CommandRunner.Execute(project, request, json);
+    }
+
+    public static void Disable(string project, string componentId, bool json = false)
+    {
+        var request = CreateSetPropertyRequest(componentId, "m_Enabled", "false");
         CommandRunner.Execute(project, request, json);
     }
 
@@ -52,21 +64,23 @@ public static class ComponentCommand
         };
     }
 
-    internal static CommandRequest CreateAddRequest(string id, string type)
+    internal static CommandRequest CreateAddRequest(string? id, string? name, string type)
     {
-        if (string.IsNullOrWhiteSpace(id))
-            throw new ArgumentException("id must not be empty", nameof(id));
+        if (string.IsNullOrWhiteSpace(id) && string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Either 'id' or 'name' must be provided.");
         if (string.IsNullOrWhiteSpace(type))
             throw new ArgumentException("type must not be empty", nameof(type));
+
+        var parameters = new JsonObject { ["type"] = type };
+        if (!string.IsNullOrWhiteSpace(id))
+            parameters["id"] = id;
+        if (!string.IsNullOrWhiteSpace(name))
+            parameters["name"] = name;
 
         return new CommandRequest
         {
             Command = WellKnownCommands.ComponentAdd,
-            Parameters = new JsonObject
-            {
-                ["id"] = id,
-                ["type"] = type
-            }
+            Parameters = parameters
         };
     }
 

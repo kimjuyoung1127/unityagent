@@ -60,12 +60,12 @@ unityctl 작업 시작 시 가장 먼저 읽는 진입 문서입니다.
 - MCP Prompts (`create_game_scene/debug_game/iterate_gameplay/setup_project` — AI 워크플로우 가이드 4개): Done
 - CLI Feedback Fixes (CLI-012 `prefab instantiate`, CLI-014 `asset copy` 외부 경로, CLI-000 IPC 30초 메시지 타임아웃): Done
 - Token Optimization (status state 구분, hierarchy summary/maxDepth, component get summary, console get-entries dedupe): Done
+- CLI Enhancement (profiler rendering stats, component add --name, component enable/disable, profiler --detailed): Done
 
 최근 확정 사항 (최신 3개만 표시, 전체 이력은 `docs/internal/DEVELOPMENT.md` "슬라이스 이력" 참조):
+- CLI Enhancement (2026-03-23): profiler get-stats에 FPS/batches/drawCalls/triangles/vertices 추가, component add --name 폴백, component enable/disable 단축 명령, profiler --detailed GC 통계. 755 테스트 통과.
 - Token Optimization (2026-03-20): status state 구분 (Playing/PlayingPaused/EnteringPlayMode), hierarchy summary+maxDepth, component get summary, console get-entries dedupe.
 - CLI Feedback Fixes (2026-03-20): prefab instantiate, asset copy 외부 경로, IPC 메시지 타임아웃. Unity 6 라이브 테스트 통과.
-- MCP Prompts (2026-03-20): 4개 워크플로우 프롬프트 추가 (create_game_scene, debug_game, iterate_gameplay, setup_project).
-- Next-Gen Extension Phases (2026-03-20): Phase G/H/C/I-1/D/E/I-2 — 24개 신규 명령, 82+ 신규 테스트. Unity 6 라이브 테스트 통과.
 
 ## 실행 규칙 (MUST)
 1. 기존 코드/타입/유틸 우선 재사용, 중복 구현 금지

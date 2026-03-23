@@ -9,10 +9,10 @@
 
 ### The execution layer for AI-driven game development.
 
-Give your AI agent **131 commands** to build Unity scenes, write C# scripts, validate builds, and ship games — with automatic rollback when things go wrong.
+Give your AI agent **133 commands** to build Unity scenes, write C# scripts, validate builds, and ship games — with automatic rollback when things go wrong.
 
 ```
-131 CLI commands · 12 MCP tools · 689 tests · Windows / macOS / Linux
+133 CLI commands · 12 MCP tools · 689 tests · Windows / macOS / Linux
 ```
 
 <p align="center">
@@ -149,7 +149,7 @@ See [Showcase Roadmap](docs/ref/showcase-roadmap.md) for:
 | **Connection stability** | Named Pipe — survives Domain Reload | WebSocket drops, reconnect needed |
 | **CI/CD** | `check` / `test` / `build --dry-run` work headless | Editor must be open |
 | **Diagnostics** | `doctor` classifies failures + suggests next steps | "Connection failed" |
-| **Commands** | **131** (read + write + validate + diagnose) | ~34-200 tools |
+| **Commands** | **133** (read + write + validate + diagnose) | ~34-200 tools |
 | **Audit trail** | NDJSON flight recorder for every command | No history |
 | **Runtime** | Native .NET — no Python/TS bridge | Bridge overhead |
 | **Install** | `dotnet tool install -g unityctl` | Node.js + npm + port config |
@@ -300,7 +300,7 @@ Add to your Claude Code / Cursor / VS Code MCP config:
 
 ---
 
-## Commands (131)
+## Commands (133)
 
 ### Core (13)
 
@@ -478,7 +478,7 @@ Add to your Claude Code / Cursor / VS Code MCP config:
 
 ```
 AI Agent (LLM)                unityctl-mcp              unityctl CLI             Unity Editor
-Claude / GPT / Gemini         12 MCP tools              131 commands             Plugin (IPC)
+Claude / GPT / Gemini         12 MCP tools              133 commands             Plugin (IPC)
         |                          |                          |                       |
         |--- MCP (stdio) -------->|                          |                       |
         |                          |--- CLI invocation ----->|                       |
@@ -525,7 +525,7 @@ unityctl.slnx
 </p>
 
 <p align="center">
-  <img src="docs/assets/tools.svg" alt="unityctl tools — 131 commands across 9 categories" width="654">
+  <img src="docs/assets/tools.svg" alt="unityctl tools — 133 commands across 9 categories" width="654">
 </p>
 
 ## Documentation

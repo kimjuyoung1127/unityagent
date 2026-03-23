@@ -52,7 +52,9 @@
 
 - **Token Optimization (status state 구분, hierarchy summary/maxDepth, component get summary, console-get-entries dedupe)**: 구현 완료
 
-**전체 Phase 완료. 총 84개 write allowlist 명령, 157개 CLI 명령, 12개 MCP 도구 (33→12 통합), 4개 MCP 프롬프트.**
+- **CLI Enhancement (profiler rendering stats + component add --name + component enable/disable + profiler --detailed)**: 구현 완료. Unity 6 라이브 테스트 통과. 755 테스트 통과.
+
+**전체 Phase 완료. 총 84개 write allowlist 명령, 159개 CLI 명령 (+2 component enable/disable), 12개 MCP 도구 (33→12 통합), 4개 MCP 프롬프트.**
 
 ## Visual Verification v2 Phase 1 라이브 검증 (My project, Unity 6000.0.64f1)
 
