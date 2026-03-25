@@ -23,7 +23,7 @@ Open (or restart) the Unity Editor after running this command. For contributor w
 
 ```bash
 unityctl init --project "/path/to/unity/project" --source /path/to/unityctl/src/Unityctl.Plugin
-unityctl init --project "/path/to/unity/project" --source "https://github.com/Jason-hub-star/unityctl.git?path=/src/Unityctl.Plugin#v0.3.3"
+unityctl init --project "/path/to/unity/project" --source "https://github.com/Jason-hub-star/unityctl.git?path=/src/Unityctl.Plugin#v0.3.4"
 ```
 
 ### 3. Verify

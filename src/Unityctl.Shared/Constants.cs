@@ -10,7 +10,7 @@ public static class Constants
     private static readonly string? InformationalVersion =
         typeof(Constants).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
 
-    public static string Version => NormalizeVersion(InformationalVersion) ?? "0.3.3";
+    public static string Version => NormalizeVersion(InformationalVersion) ?? "0.3.4";
     public const string PipePrefix = "unityctl_";
     public const int DefaultTimeoutMs = 120_000;
     public const int PingTimeoutMs = 10_000;

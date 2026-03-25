@@ -34,18 +34,16 @@
   <ItemGroup>
     <Content Include="..\Unityctl.Plugin\package.json">
       <Link>unityctl-plugin-template\package.json</Link>
+      <Pack>false</Pack>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-      <Pack>true</Pack>
-      <PackagePath>tools\net10.0\any\unityctl-plugin-template\package.json</PackagePath>
     </Content>
     <Content Include="..\Unityctl.Plugin\Editor\**\*"
              Exclude="..\Unityctl.Plugin\Editor\bin\**\*;..\Unityctl.Plugin\Editor\obj\**\*">
       <Link>unityctl-plugin-template\Editor\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <Pack>false</Pack>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-      <Pack>true</Pack>
-      <PackagePath>tools\net10.0\any\unityctl-plugin-template\Editor\%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
     </Content>
   </ItemGroup>
 </Project>
