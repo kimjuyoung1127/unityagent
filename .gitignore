@@ -24,6 +24,7 @@ Thumbs.db
 
 ## Temp
 *.tmp
+__pycache__/
 
 ## Node (SVG generation script)
 node_modules/
@@ -38,3 +39,6 @@ tests/Unityctl.Integration/SampleUnityProject/UserSettings/
 ## Ralph workspace (반복 간 맥락 파일)
 docs/internal/ralph/workspace/*
 !docs/internal/ralph/workspace/.gitkeep
+docs/status/.readme-sync.lock
+ralph/workspace/*.log
+ralph/workspace/*.txt
