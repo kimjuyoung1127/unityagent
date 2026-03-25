@@ -46,6 +46,14 @@ public static class CommandCatalog
         Parameter("wait", "bool", "Retry until editor responds", required: false),
         Parameter("json", "bool", "Output as JSON", required: false));
 
+    public static readonly CommandDefinition AwaitReady = Define(
+        "await-ready",
+        "Wait until Unity IPC is reachable and the Editor is no longer compiling or domain reloading",
+        "query",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("timeout", "int", "Timeout in seconds while waiting for stable IPC readiness (default: 300)", required: false),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
     public static readonly CommandDefinition Ping = Define(
         WellKnownCommands.Ping,
         "Verify unityctl connectivity to a Unity project",
@@ -587,6 +595,14 @@ public static class CommandCatalog
         Parameter("project", "string", "Path to Unity project", required: true),
         Parameter("json", "bool", "Output as JSON", required: false)).WithCli("package list");
 
+    public static readonly CommandDefinition PackageResolveCmd = Define(
+        "package resolve",
+        "Compare manifest targets, loaded package metadata, and cache state to detect package drift",
+        "query",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("package", "string", "Optional package name filter (default: all known packages in manifest/list/lock files)", required: false),
+        Parameter("json", "bool", "Output as JSON", required: false));
+
     public static readonly CommandDefinition PackageAddCmd = Define(
         WellKnownCommands.PackageAdd,
         "Add a package to the project",
@@ -720,6 +736,7 @@ public static class CommandCatalog
         Parameter("type", "string", "Exact UI type match (Canvas, Button, Text, Image, Panel, InputField, Toggle, Slider, Dropdown, ScrollView)", required: false),
         Parameter("parent", "string", "GlobalObjectId of the direct parent UI element", required: false),
         Parameter("canvas", "string", "GlobalObjectId of the root Canvas", required: false),
+        Parameter("scene", "string", "Restrict the search to a loaded scene path, scene name, or 'active'", required: false),
         Parameter("interactable", "bool", "Filter Selectable-based controls by interactable state", required: false),
         Parameter("active", "bool", "Filter by GameObject activeSelf state", required: false),
         Parameter("includeInactive", "bool", "Include inactive UI elements in the search", required: false),
@@ -889,7 +906,7 @@ public static class CommandCatalog
     // Screenshot / Visual Feedback — P3
     public static readonly CommandDefinition ScreenshotCapture = Define(
         WellKnownCommands.Screenshot,
-        "Capture a screenshot of the Unity Scene View or Game View camera",
+        "Capture a screenshot of the Unity Scene View or Game View; Game View overlay UI requires --include-overlay-ui",
         "query",
         Parameter("project", "string", "Path to Unity project", required: true),
         Parameter("view", "string", "View to capture: scene or game (default: scene)", required: false),
@@ -897,6 +914,7 @@ public static class CommandCatalog
         Parameter("height", "int", "Image height in pixels (default: 1080)", required: false),
         Parameter("format", "string", "Image format: png or jpg (default: png)", required: false),
         Parameter("quality", "int", "JPG quality 1-100 (default: 75, ignored for png)", required: false),
+        Parameter("includeOverlayUi", "bool", "Include Screen Space - Overlay UGUI in Game View capture (default: false)", required: false),
         Parameter("output", "string", "File path to save the image (optional, base64-only by default)", required: false),
         Parameter("json", "bool", "Output as JSON", required: false)).WithCli("screenshot capture");
 
@@ -1433,6 +1451,7 @@ public static class CommandCatalog
         EditorSelect,
         Ping,
         Status,
+        AwaitReady,
         Build,
         BuildProfileList,
         BuildProfileGetActive,
@@ -1496,6 +1515,7 @@ public static class CommandCatalog
         PrefabEditCmd,
         // Phase C-3: Package Manager + Project Settings
         PackageListCmd,
+        PackageResolveCmd,
         PackageAddCmd,
         PackageRemoveCmd,
         ProjectSettingsGetCmd,

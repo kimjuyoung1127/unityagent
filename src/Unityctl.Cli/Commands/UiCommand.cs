@@ -44,13 +44,14 @@ public static class UiCommand
         string? type = null,
         string? parent = null,
         string? canvas = null,
+        string? scene = null,
         string? interactable = null,
         string? active = null,
         bool includeInactive = false,
         int? limit = null,
         bool json = false)
     {
-        var request = CreateFindRequest(name, text, type, parent, canvas, interactable, active, includeInactive, limit);
+        var request = CreateFindRequest(name, text, type, parent, canvas, scene, interactable, active, includeInactive, limit);
         CommandRunner.Execute(project, request, json);
     }
 
@@ -136,6 +137,7 @@ public static class UiCommand
         string? type,
         string? parent,
         string? canvas,
+        string? scene,
         string? interactable,
         string? active,
         bool includeInactive,
@@ -147,6 +149,7 @@ public static class UiCommand
         if (!string.IsNullOrWhiteSpace(type)) parameters["type"] = type;
         if (!string.IsNullOrWhiteSpace(parent)) parameters["parent"] = parent;
         if (!string.IsNullOrWhiteSpace(canvas)) parameters["canvas"] = canvas;
+        if (!string.IsNullOrWhiteSpace(scene)) parameters["scene"] = scene;
         if (!string.IsNullOrWhiteSpace(interactable)) parameters["interactable"] = ParseOptionalBool(interactable, nameof(interactable));
         if (!string.IsNullOrWhiteSpace(active)) parameters["active"] = ParseOptionalBool(active, nameof(active));
         if (includeInactive) parameters["includeInactive"] = true;

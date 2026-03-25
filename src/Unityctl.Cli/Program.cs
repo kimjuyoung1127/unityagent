@@ -1,5 +1,6 @@
 using ConsoleAppFramework;
 using Unityctl.Cli.Commands;
+using Unityctl.Cli.Execution;
 
 var app = ConsoleApp.Create();
 
@@ -25,6 +26,9 @@ app.Add("ping", (string? project = null, bool json = false) =>
 
 app.Add("status", (string? project = null, bool wait = false, bool json = false) =>
     StatusCommand.Execute(project, wait, json));
+
+app.Add("await-ready", (string? project = null, int timeout = 300, bool json = false) =>
+    AwaitReadyCommand.Execute(project, timeout, json));
 
 app.Add("build", (string project, string target = "StandaloneWindows64", string? output = null, bool dryRun = false, bool json = false) =>
     BuildCommand.Execute(project, target, output, dryRun, json));
@@ -274,6 +278,9 @@ app.Add("prefab edit", (string project, string path, string property, string val
 app.Add("package list", (string project, bool json = false) =>
     PackageCommand.List(project, json));
 
+app.Add("package resolve", (string project, string? package = null, bool json = false) =>
+    PackageResolveCommand.Execute(project, package, json));
+
 app.Add("package add", (string project, string package_, bool json = false) =>
     PackageCommand.Add(project, package_, json));
 
@@ -324,12 +331,13 @@ app.Add("ui find", (
         string? type = null,
         string? parent = null,
         string? canvas = null,
+        string? scene = null,
         string? interactable = null,
         string? active = null,
         bool includeInactive = false,
         int? limit = null,
         bool json = false) =>
-    UiCommand.Find(project, name, text, type, parent, canvas, interactable, active, includeInactive, limit, json));
+    UiCommand.Find(project, name, text, type, parent, canvas, scene, interactable, active, includeInactive, limit, json));
 
 app.Add("ui get", (string project, string id, bool json = false) =>
     UiCommand.Get(project, id, json));
@@ -578,8 +586,12 @@ app.Add("screenshot capture", (
         int height = 1080,
         string format = "png",
         int quality = 75,
+        bool includeOverlayUi = false,
         string? output = null,
         bool json = false) =>
-    ScreenshotCommand.Capture(project, view, width, height, format, quality, output, json));
+    ScreenshotCommand.Capture(project, view, width, height, format, quality, includeOverlayUi, output, json));
+
+if (CliCommandSuggestions.TryHandleUnknownCommand(args))
+    return;
 
 app.Run(args);

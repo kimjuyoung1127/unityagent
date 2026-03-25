@@ -17,6 +17,7 @@ namespace Unityctl.Plugin.Editor.Commands
             var type = request.GetParam("type", null);
             var parent = request.GetParam("parent", null);
             var canvas = request.GetParam("canvas", null);
+            var scene = request.GetParam("scene", null);
             var includeInactive = request.GetParam<bool>("includeInactive");
             var limit = request.GetParam<int>("limit");
             var interactable = TryGetOptionalBool(request, "interactable");
@@ -24,15 +25,14 @@ namespace Unityctl.Plugin.Editor.Commands
             var effectiveIncludeInactive = includeInactive || active == false;
 
             var results = new JArray();
-            var sceneCount = UnityEngine.SceneManagement.SceneManager.sceneCount;
-            for (var i = 0; i < sceneCount; i++)
+            var loadedScenes = GetTargetScenes(scene);
+            if (loadedScenes.Count == 0)
             {
-                var loadedScene = UnityEngine.SceneManagement.SceneManager.GetSceneAt(i);
-                if (!loadedScene.isLoaded)
-                {
-                    continue;
-                }
+                return Fail(StatusCode.NotFound, $"No loaded scene matched '{scene}'");
+            }
 
+            foreach (var loadedScene in loadedScenes)
+            {
                 foreach (var root in loadedScene.GetRootGameObjects())
                 {
                     if (Traverse(root, string.Empty, results, name, text, type, parent, canvas, interactable, active, effectiveIncludeInactive, limit))
@@ -55,6 +55,41 @@ namespace Unityctl.Plugin.Editor.Commands
         }
 
 #if UNITY_EDITOR
+        private static System.Collections.Generic.List<UnityEngine.SceneManagement.Scene> GetTargetScenes(string sceneFilter)
+        {
+            var scenes = new System.Collections.Generic.List<UnityEngine.SceneManagement.Scene>();
+            if (string.Equals(sceneFilter, "active", StringComparison.OrdinalIgnoreCase))
+            {
+                var activeScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+                if (activeScene.IsValid() && activeScene.isLoaded)
+                {
+                    scenes.Add(activeScene);
+                }
+
+                return scenes;
+            }
+
+            var sceneCount = UnityEngine.SceneManagement.SceneManager.sceneCount;
+            for (var i = 0; i < sceneCount; i++)
+            {
+                var loadedScene = UnityEngine.SceneManagement.SceneManager.GetSceneAt(i);
+                if (!loadedScene.isLoaded)
+                {
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(sceneFilter)
+                    || string.Equals(loadedScene.path, sceneFilter, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(loadedScene.name, sceneFilter, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(System.IO.Path.GetFileNameWithoutExtension(loadedScene.path), sceneFilter, StringComparison.OrdinalIgnoreCase))
+                {
+                    scenes.Add(loadedScene);
+                }
+            }
+
+            return scenes;
+        }
+
         private static bool Traverse(
             UnityEngine.GameObject gameObject,
             string parentPath,

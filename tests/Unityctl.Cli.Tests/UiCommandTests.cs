@@ -9,7 +9,7 @@ public class UiCommandTests
     [CliTestFact]
     public void Find_SetsCommandName()
     {
-        var request = UiCommand.CreateFindRequest(null, null, null, null, null, null, null, false, null);
+        var request = UiCommand.CreateFindRequest(null, null, null, null, null, null, null, null, false, null);
         Assert.Equal(WellKnownCommands.UiFind, request.Command);
     }
 
@@ -22,6 +22,7 @@ public class UiCommandTests
             "Button",
             "gid-parent",
             "gid-canvas",
+            "active",
             "true",
             "false",
             includeInactive: true,
@@ -32,6 +33,7 @@ public class UiCommandTests
         Assert.Equal("Button", request.Parameters["type"]?.GetValue<string>());
         Assert.Equal("gid-parent", request.Parameters["parent"]?.GetValue<string>());
         Assert.Equal("gid-canvas", request.Parameters["canvas"]?.GetValue<string>());
+        Assert.Equal("active", request.Parameters["scene"]?.GetValue<string>());
         Assert.True(request.Parameters["interactable"]?.GetValue<bool>());
         Assert.False(request.Parameters["active"]?.GetValue<bool>());
         Assert.True(request.Parameters["includeInactive"]?.GetValue<bool>());
@@ -41,13 +43,14 @@ public class UiCommandTests
     [CliTestFact]
     public void Find_OmitsUnsetParameters()
     {
-        var request = UiCommand.CreateFindRequest(null, null, null, null, null, null, null, false, null);
+        var request = UiCommand.CreateFindRequest(null, null, null, null, null, null, null, null, false, null);
 
         Assert.False(request.Parameters!.ContainsKey("name"));
         Assert.False(request.Parameters.ContainsKey("text"));
         Assert.False(request.Parameters.ContainsKey("type"));
         Assert.False(request.Parameters.ContainsKey("parent"));
         Assert.False(request.Parameters.ContainsKey("canvas"));
+        Assert.False(request.Parameters.ContainsKey("scene"));
         Assert.False(request.Parameters.ContainsKey("interactable"));
         Assert.False(request.Parameters.ContainsKey("active"));
         Assert.False(request.Parameters.ContainsKey("includeInactive"));
@@ -58,7 +61,7 @@ public class UiCommandTests
     public void Find_InvalidInteractable_Throws()
     {
         Assert.Throws<ArgumentException>(() =>
-            UiCommand.CreateFindRequest(null, null, null, null, null, "yes", null, false, null));
+            UiCommand.CreateFindRequest(null, null, null, null, null, null, "yes", null, false, null));
     }
 
     [CliTestFact]

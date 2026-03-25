@@ -11,7 +11,7 @@ public class CommandCatalogTests
         var names = CommandCatalog.All.Select(command => command.Name).ToArray();
 
         Assert.Equal(
-            ["init", "editor list", "editor instances", "editor current", "editor select", "ping", "status", "build",
+            ["init", "editor list", "editor instances", "editor current", "editor select", "ping", "status", "await-ready", "build",
              "build-profile-list", "build-profile-get-active", "build-profile-set-active", "build-target-switch",
              "test", "test-result", "check", "tools", "doctor", "log",
              "session list", "session stop", "session clean", "watch",
@@ -28,7 +28,7 @@ public class CommandCatalogTests
              // Phase C-2: Prefab
              "prefab-create", "prefab-unpack", "prefab-apply", "prefab-instantiate", "prefab-edit",
              // Phase C-3: Package Manager + Project Settings
-             "package-list", "package-add", "package-remove", "project-settings-get", "project-settings-set",
+             "package-list", "package resolve", "package-add", "package-remove", "project-settings-get", "project-settings-set",
              // Phase C-4: Material/Shader
              "material-create", "material-get", "material-set", "material-set-shader",
              // Phase C-5: Animation + UI
