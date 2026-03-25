@@ -219,7 +219,7 @@ dotnet tool install -g unityctl-mcp
 ```
 
 Bootstrap notes:
-- `--source` accepts a local `Unityctl.Plugin` folder or a Git URL: `https://github.com/kimjuyoung1127/unityctl.git?path=/src/Unityctl.Plugin#v0.2.0`
+- `--source` accepts a local `Unityctl.Plugin` folder or a Git URL: `https://github.com/kimjuyoung1127/unityctl.git?path=/src/Unityctl.Plugin#v0.3.2`
 - GitHub Release CLI archives are framework-dependent (not self-contained) today.
 
 ### Apple Silicon macOS Validation
@@ -246,7 +246,7 @@ Project compatibility note: if a Unity project or third-party package is pinned 
 ```bash
 # 1. Install the Editor plugin
 unityctl init --project /path/to/project \
-  --source "https://github.com/kimjuyoung1127/unityctl.git?path=/src/Unityctl.Plugin#v0.2.0"
+  --source "https://github.com/kimjuyoung1127/unityctl.git?path=/src/Unityctl.Plugin#v0.3.2"
 
 # 2. Open the project in Unity Editor, then verify connectivity
 unityctl ping --project /path/to/project --json

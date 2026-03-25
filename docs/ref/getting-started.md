@@ -69,7 +69,7 @@ Important caveat: one validation project depended on a third-party Unity package
 ### 1. Install the plugin into your Unity project
 
 ```bash
-unityctl init --project /path/to/unity/project --source "https://github.com/kimjuyoung1127/unityctl.git?path=/src/Unityctl.Plugin#v0.2.0"
+unityctl init --project /path/to/unity/project --source "https://github.com/kimjuyoung1127/unityctl.git?path=/src/Unityctl.Plugin#v0.3.2"
 ```
 
 This adds the `com.unityctl.bridge` UPM package to your project's `Packages/manifest.json`. With a local path it writes a `file:` package reference; with a Git URL it writes the URL directly. If you run `unityctl` from a cloned `unityctl` workspace, `--source` can still be omitted because the CLI will try to find `src/Unityctl.Plugin` automatically. Open (or restart) the Unity Editor after running this command.

@@ -214,7 +214,7 @@ dotnet tool install -g unityctl-mcp
 ```
 
 참고:
-- `--source`에 로컬 `Unityctl.Plugin` 폴더 경로나 Git URL을 넣을 수 있습니다: `https://github.com/kimjuyoung1127/unityctl.git?path=/src/Unityctl.Plugin#v0.2.0`
+- `--source`에 로컬 `Unityctl.Plugin` 폴더 경로나 Git URL을 넣을 수 있습니다: `https://github.com/kimjuyoung1127/unityctl.git?path=/src/Unityctl.Plugin#v0.3.2`
 - GitHub Release의 CLI 아카이브는 현재 framework-dependent 빌드입니다 (self-contained 아님).
 
 ### Apple Silicon macOS 검증
@@ -241,7 +241,7 @@ Apple Silicon MacBook Air에서 Homebrew, .NET SDK `10.0.105`, Unity Hub, Unity 
 ```bash
 # 1. 에디터 플러그인 설치
 unityctl init --project /path/to/project \
-  --source "https://github.com/kimjuyoung1127/unityctl.git?path=/src/Unityctl.Plugin#v0.2.0"
+  --source "https://github.com/kimjuyoung1127/unityctl.git?path=/src/Unityctl.Plugin#v0.3.2"
 
 # 2. Unity Editor에서 프로젝트를 열고 연결 확인
 unityctl ping --project /path/to/project --json

@@ -16,7 +16,7 @@ Today the CLI packages do not bundle the Unity plugin directly. `unityctl init` 
 ### 2. Install plugin into Unity project
 
 ```bash
-unityctl init --project "/path/to/unity/project" --source "https://github.com/kimjuyoung1127/unityctl.git?path=/src/Unityctl.Plugin#v0.2.0"
+unityctl init --project "/path/to/unity/project" --source "https://github.com/kimjuyoung1127/unityctl.git?path=/src/Unityctl.Plugin#v0.3.2"
 ```
 
 Open (or restart) the Unity Editor after running this command. When you run from a cloned `unityctl` workspace, the CLI can usually find `src/Unityctl.Plugin` without `--source`; you can also pass that local path explicitly instead of a Git URL.
