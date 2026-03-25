@@ -155,7 +155,7 @@ internal sealed class GameWorkflowPrompts
             ## Step 2: Install Plugin
             3. unityctl_run(command="init") with parameters:
                - project: "/path/to/unity/project"
-               - source: "https://github.com/Jason-hub-star/unityctl.git?path=/src/Unityctl.Plugin#v0.3.4"
+               - source: "https://github.com/Jason-hub-star/unityctl.git?path=/src/Unityctl.Plugin#v0.3.5"
             4. Restart Unity Editor (or wait for domain reload)
 
             ## Step 3: Verify

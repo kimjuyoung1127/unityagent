@@ -50,6 +50,16 @@ public class CommandSyncGuardrailTests
     }
 
     [Fact]
+    public void IpcServer_UsesFastQuitShutdownPath()
+    {
+        var source = ReadRepoFile(@"src\Unityctl.Plugin\Editor\Ipc\IpcServer.cs");
+
+        Assert.Contains("private void StopForEditorQuit()", source);
+        Assert.Contains("StopInternal(ShutdownMode.EditorQuit)", source);
+        Assert.Contains("if (!fastExit)", source);
+    }
+
+    [Fact]
     public void ScriptCommands_AreRegisteredAcrossCliMcpAndPlugin()
     {
         var cliCommands = ParseCliCommands();

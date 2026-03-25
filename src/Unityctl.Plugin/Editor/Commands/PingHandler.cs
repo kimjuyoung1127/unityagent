@@ -11,7 +11,7 @@ namespace Unityctl.Plugin.Editor.Commands
         {
             var data = new JObject
             {
-                ["version"] = "0.3.4",
+                ["version"] = "0.3.5",
 #if UNITY_EDITOR
                 ["unityVersion"] = UnityEngine.Application.unityVersion
 #endif

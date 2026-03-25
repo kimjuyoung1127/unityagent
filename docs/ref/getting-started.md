@@ -79,7 +79,7 @@ If you need a contributor-style source install instead, you can still do one of 
 
 ```bash
 unityctl init --project /path/to/unity/project --source /path/to/unityctl/src/Unityctl.Plugin
-unityctl init --project /path/to/unity/project --source "https://github.com/Jason-hub-star/unityctl.git?path=/src/Unityctl.Plugin#v0.3.4"
+unityctl init --project /path/to/unity/project --source "https://github.com/Jason-hub-star/unityctl.git?path=/src/Unityctl.Plugin#v0.3.5"
 ```
 
 When switching away from an older `file:` install, first run:

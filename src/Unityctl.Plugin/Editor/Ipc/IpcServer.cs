@@ -22,6 +22,12 @@ namespace Unityctl.Plugin.Editor.Ipc
     /// </summary>
     public sealed class IpcServer
     {
+        private enum ShutdownMode
+        {
+            Graceful,
+            EditorQuit
+        }
+
         private const int MaxServerInstances = 4;
         private const int PipeBusyRetryDelayMs = 250;
         private const int ErrorPipeBusy = 231;
@@ -78,7 +84,7 @@ namespace Unityctl.Plugin.Editor.Ipc
                 if (IsRunning && _pipeName == pipeName) return;
 
                 // Different project or not running — stop existing, start new
-                if (IsRunning) StopInternal();
+                if (IsRunning) StopInternal(ShutdownMode.Graceful);
 
                 _projectPath = projectPath;
                 _pipeName = pipeName;
@@ -111,26 +117,42 @@ namespace Unityctl.Plugin.Editor.Ipc
         {
             lock (_lock)
             {
-                StopInternal();
+                StopInternal(ShutdownMode.Graceful);
             }
         }
 
-        private void StopInternal()
+        private void StopForEditorQuit()
+        {
+            lock (_lock)
+            {
+                StopInternal(ShutdownMode.EditorQuit);
+            }
+        }
+
+        private void StopInternal(ShutdownMode shutdownMode)
         {
             if (!IsRunning) return;
 
+            var fastExit = shutdownMode == ShutdownMode.EditorQuit;
             _stopping = true;
             _shutdownCompletion.TrySetResult(true);
+
+            EditorApplication.update -= PumpMainThreadQueue;
+            AssemblyReloadEvents.beforeAssemblyReload -= OnBeforeAssemblyReload;
+            EditorApplication.quitting -= OnQuitting;
 
             // Signal watch session to stop
             if (_watchActive)
             {
-                try
+                if (!fastExit)
                 {
-                    var closeEnvelope = EventEnvelope.Create("_close", "Shutdown");
-                    _watchQueue.Enqueue(closeEnvelope);
+                    try
+                    {
+                        var closeEnvelope = EventEnvelope.Create("_close", "Shutdown");
+                        _watchQueue.Enqueue(closeEnvelope);
+                    }
+                    catch { }
                 }
-                catch { }
                 _watchActive = false;
                 _watchEventSource?.Unsubscribe();
                 _watchEventSource = null;
@@ -138,22 +160,22 @@ namespace Unityctl.Plugin.Editor.Ipc
 
             // Dispose current pipe to unblock WaitForConnection
             try { _listenPipe?.Dispose(); } catch { }
+            try { _watchPipe?.Dispose(); } catch { }
 
             foreach (var activePipe in _activePipes.Values)
             {
                 try { activePipe.Dispose(); } catch { }
             }
 
-            if (_listenThread != null && _listenThread.IsAlive)
-                _listenThread.Join(3000);
+            if (!fastExit)
+            {
+                if (_listenThread != null && _listenThread.IsAlive)
+                    _listenThread.Join(3000);
 
-            // Wait for watch writer thread to finish
-            if (_watchThread != null && _watchThread.IsAlive)
-                _watchThread.Join(2000);
-
-            EditorApplication.update -= PumpMainThreadQueue;
-            AssemblyReloadEvents.beforeAssemblyReload -= OnBeforeAssemblyReload;
-            EditorApplication.quitting -= OnQuitting;
+                // Wait for watch writer thread to finish
+                if (_watchThread != null && _watchThread.IsAlive)
+                    _watchThread.Join(2000);
+            }
 
             // Cancel and drain remaining queued requests so listener threads do not block.
             while (_mainThreadQueue.TryDequeue(out var pending))
@@ -161,8 +183,13 @@ namespace Unityctl.Plugin.Editor.Ipc
                 pending.WorkItem.Cancel();
             }
 
+            _listenPipe = null;
+            _watchPipe = null;
+            _listenThread = null;
+            _watchThread = null;
             IsRunning = false;
-            Debug.Log("[unityctl] IPC server stopped");
+            if (!fastExit)
+                Debug.Log("[unityctl] IPC server stopped");
         }
 
         private void OnBeforeAssemblyReload()
@@ -172,7 +199,7 @@ namespace Unityctl.Plugin.Editor.Ipc
 
         private void OnQuitting()
         {
-            Stop();
+            StopForEditorQuit();
         }
 
         /// <summary>
