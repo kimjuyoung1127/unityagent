@@ -91,16 +91,37 @@ public class CommandSyncGuardrailTests
     public void UiInteractionCommands_AreRegisteredAcrossCliMcpAndPlugin()
     {
         var cliCommands = ParseCliCommands();
+        Assert.Contains("ui click", cliCommands);
         Assert.Contains("ui toggle", cliCommands);
         Assert.Contains("ui input", cliCommands);
 
         var runAllowlist = ParseWellKnownFieldReferences(@"src\Unityctl.Mcp\Tools\RunTool.cs");
+        Assert.Contains(nameof(WellKnownCommands.UiClick), runAllowlist);
         Assert.Contains(nameof(WellKnownCommands.UiToggle), runAllowlist);
         Assert.Contains(nameof(WellKnownCommands.UiInput), runAllowlist);
 
         var pluginHandlers = ParsePluginHandlerFieldNames();
+        Assert.Contains(nameof(WellKnownCommands.UiClick), pluginHandlers);
         Assert.Contains(nameof(WellKnownCommands.UiToggle), pluginHandlers);
         Assert.Contains(nameof(WellKnownCommands.UiInput), pluginHandlers);
+    }
+
+    [Fact]
+    public void ExecStructuredCommands_AreRegisteredAcrossCliMcpAndPlugin()
+    {
+        var cliCommands = ParseCliCommands();
+        Assert.Contains("exec list-callables", cliCommands);
+        Assert.Contains("exec invoke", cliCommands);
+
+        var queryAllowlist = ParseWellKnownFieldReferences(@"src\Unityctl.Mcp\Tools\QueryTool.cs");
+        Assert.Contains(nameof(WellKnownCommands.ExecListCallables), queryAllowlist);
+
+        var runAllowlist = ParseWellKnownFieldReferences(@"src\Unityctl.Mcp\Tools\RunTool.cs");
+        Assert.Contains(nameof(WellKnownCommands.ExecInvoke), runAllowlist);
+
+        var pluginHandlers = ParsePluginHandlerFieldNames();
+        Assert.Contains(nameof(WellKnownCommands.ExecListCallables), pluginHandlers);
+        Assert.Contains(nameof(WellKnownCommands.ExecInvoke), pluginHandlers);
     }
 
     [Fact]

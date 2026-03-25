@@ -19,6 +19,8 @@ namespace Unityctl.Plugin.Editor.Shared
         public const string SceneHierarchy = "scene-hierarchy";
         public const string SceneDiff = "scene-diff";
         public const string Exec = "exec";
+        public const string ExecListCallables = "exec-list-callables";
+        public const string ExecInvoke = "exec-invoke";
         public const string BatchExecute = "batch-execute";
 
         // Write API — Phase A
@@ -92,6 +94,7 @@ namespace Unityctl.Plugin.Editor.Shared
     public const string UiSetRect = "ui-set-rect";
     public const string UiFind = "ui-find";
     public const string UiGet = "ui-get";
+    public const string UiClick = "ui-click";
     public const string UiToggle = "ui-toggle";
     public const string UiInput = "ui-input";
 

@@ -9,6 +9,11 @@ internal static class CliCommandSuggestions
 {
     private static readonly string[] KnownCommands = CommandCatalog.All
         .Select(command => command.CliName ?? command.Name)
+        .Concat([
+            "play start",
+            "play stop",
+            "play pause"
+        ])
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .OrderBy(command => command, StringComparer.OrdinalIgnoreCase)
         .ToArray();

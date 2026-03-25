@@ -38,6 +38,7 @@ internal sealed class QueryTool(CommandExecutor executor)
         // Script v2
         WellKnownCommands.ScriptGetErrors,
         WellKnownCommands.ScriptFindRefs,
+        WellKnownCommands.ExecListCallables,
         // Project Validation
         WellKnownCommands.ProjectValidate,
         // Scene (was SceneTool)

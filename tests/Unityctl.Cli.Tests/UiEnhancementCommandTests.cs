@@ -107,4 +107,26 @@ public class UiEnhancementCommandTests
     {
         Assert.Throws<ArgumentException>(() => UiCommand.CreateDropdownSetRequest("goid123", ""));
     }
+
+    [Fact]
+    public void ClickRequest_HasCorrectCommand()
+    {
+        var request = UiCommand.CreateClickRequest("goid123", "active", "play");
+        Assert.Equal(WellKnownCommands.UiClick, request.Command);
+    }
+
+    [Fact]
+    public void ClickRequest_SetsAllParameters()
+    {
+        var request = UiCommand.CreateClickRequest("goid123", "MainScene", "play");
+        Assert.Equal("goid123", request.Parameters!["id"]!.ToString());
+        Assert.Equal("MainScene", request.Parameters["scene"]!.ToString());
+        Assert.Equal("play", request.Parameters["mode"]!.ToString());
+    }
+
+    [Fact]
+    public void ClickRequest_EmptyId_Throws()
+    {
+        Assert.Throws<ArgumentException>(() => UiCommand.CreateClickRequest("", "active", "play"));
+    }
 }

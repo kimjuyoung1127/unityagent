@@ -74,6 +74,21 @@ public sealed class DoctorAnalyzerTests
     }
 
     [Fact]
+    public void Analyze_UiClickBusyFailure_AddsButtonRecommendation()
+    {
+        var snapshot = CreateSnapshot(ipcConnected: false, projectLocked: true);
+        var entries = new[]
+        {
+            MakeFailure(@"C:\Users\gmdqn\robotapp", 103, "ui-click", "Unity Editor is still compiling or reloading.")
+        };
+
+        var analysis = DoctorAnalyzer.Analyze(snapshot, @"C:\Users\gmdqn\robotapp", entries, []);
+
+        Assert.Contains("Button.onClick", string.Join(Environment.NewLine, analysis.Recommendations));
+        Assert.Contains("batch fallback is not guaranteed", string.Join(Environment.NewLine, analysis.Recommendations), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Analyze_CommandNotFoundFailureWithoutIpc_ClassifiesPluginMismatch()
     {
         var snapshot = CreateSnapshot(ipcConnected: false, projectLocked: false);

@@ -112,6 +112,12 @@ app.Add("schema", (string format = "json") =>
 app.Add("exec", (string project, string? code = null, string? file = null, bool json = false) =>
     ExecCommand.Execute(project, code, file, json));
 
+app.Add("exec list-callables", (string project, string? filter = null, int? limit = null, bool json = false) =>
+    ExecCommand.ListCallables(project, filter, limit, json));
+
+app.Add("exec invoke", (string project, string type, string method, string? args = null, bool json = false) =>
+    ExecCommand.Invoke(project, type, method, args, json));
+
 app.Add("workflow run", (string file, string? project = null, bool json = false) =>
     WorkflowCommand.Run(file, project, json));
 
@@ -341,6 +347,9 @@ app.Add("ui find", (
 
 app.Add("ui get", (string project, string id, bool json = false) =>
     UiCommand.Get(project, id, json));
+
+app.Add("ui click", (string project, string id, string? scene = null, string mode = "auto", bool json = false) =>
+    UiCommand.Click(project, id, scene, mode, json));
 
 app.Add("ui toggle", (string project, string id, string value, string mode = "auto", bool json = false) =>
     UiCommand.Toggle(project, id, value, mode, json));

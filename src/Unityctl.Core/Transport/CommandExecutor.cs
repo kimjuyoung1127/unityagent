@@ -149,6 +149,9 @@ public sealed class CommandExecutor
             WellKnownCommands.ScriptGetErrors => "script get-errors",
             WellKnownCommands.ScriptFindRefs => "script find-refs",
             WellKnownCommands.ScriptRenameSymbol => "script rename-symbol",
+            WellKnownCommands.ExecListCallables => "exec list-callables",
+            WellKnownCommands.ExecInvoke => "exec invoke",
+            WellKnownCommands.UiClick => "ui click",
             WellKnownCommands.UiToggle => "ui toggle",
             WellKnownCommands.UiInput => "ui input",
             _ => command
@@ -157,11 +160,17 @@ public sealed class CommandExecutor
         if (command is WellKnownCommands.ScriptGetErrors
             or WellKnownCommands.ScriptFindRefs
             or WellKnownCommands.ScriptRenameSymbol
+            or WellKnownCommands.ExecListCallables
+            or WellKnownCommands.ExecInvoke
+            or WellKnownCommands.UiClick
             or WellKnownCommands.UiToggle
             or WellKnownCommands.UiInput)
         {
             var followUpAction = command switch
             {
+                WellKnownCommands.ExecListCallables => "Keep the Unity Editor open and let IPC reconnect before retrying `exec list-callables`; it inspects the current AppDomain and is unreliable over batch fallback.",
+                WellKnownCommands.ExecInvoke => "Keep the Unity Editor open and let IPC reconnect before retrying `exec invoke`; it resolves currently loaded types/methods from the live AppDomain.",
+                WellKnownCommands.UiClick => "Keep the Unity Editor open and let IPC reconnect before retrying this UI interaction command. `ui click` invokes Button.onClick deterministically in Play Mode and does not rely on desktop focus automation.",
                 WellKnownCommands.ScriptGetErrors => $"If compilation diagnostics are still missing after Ready, run `unityctl script validate --project \"{projectPath}\" --wait` once to populate the latest compile cache.",
                 WellKnownCommands.UiInput => "Keep the Unity Editor open and let IPC reconnect before retrying this UI interaction command. `ui input` sets InputField.text deterministically and does not emulate keystrokes.",
                 WellKnownCommands.UiToggle => "Keep the Unity Editor open and let IPC reconnect before retrying this UI interaction command. `ui toggle` sets Toggle.isOn deterministically and does not emulate a pointer click.",

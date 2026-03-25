@@ -67,4 +67,31 @@ public class ExecCommandTests
 
         Assert.Null(result);
     }
+
+    [CliTestFact]
+    public void CreateListCallablesRequest_HasCorrectCommandAndParameters()
+    {
+        var request = ExecCommand.CreateListCallablesRequest("EditorApplication", 10);
+
+        Assert.Equal(WellKnownCommands.ExecListCallables, request.Command);
+        Assert.Equal("EditorApplication", request.Parameters!["filter"]?.GetValue<string>());
+        Assert.Equal(10, request.Parameters["limit"]?.GetValue<int>());
+    }
+
+    [CliTestFact]
+    public void CreateInvokeRequest_HasCorrectCommandAndParameters()
+    {
+        var request = ExecCommand.CreateInvokeRequest("UnityEditor.EditorApplication", "Beep", "[]");
+
+        Assert.Equal(WellKnownCommands.ExecInvoke, request.Command);
+        Assert.Equal("UnityEditor.EditorApplication", request.Parameters!["type"]?.GetValue<string>());
+        Assert.Equal("Beep", request.Parameters["method"]?.GetValue<string>());
+        Assert.Equal("[]", request.Parameters["args"]?.GetValue<string>());
+    }
+
+    [CliTestFact]
+    public void CreateInvokeRequest_EmptyType_Throws()
+    {
+        Assert.Throws<ArgumentException>(() => ExecCommand.CreateInvokeRequest("", "Beep", "[]"));
+    }
 }

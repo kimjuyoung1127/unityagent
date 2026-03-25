@@ -302,6 +302,13 @@ internal static class DoctorAnalyzer
         {
             recommendations.Add("`ui toggle` sets Toggle.isOn deterministically and does not emulate a pointer click.");
             recommendations.Add("Prefer a running Unity Editor with IPC ready before relying on `ui toggle`; batch fallback is not guaranteed for UI interaction commands.");
+            return;
+        }
+
+        if (string.Equals(lastUiFailure.Operation, WellKnownCommands.UiClick, StringComparison.OrdinalIgnoreCase))
+        {
+            recommendations.Add("`ui click` invokes Button.onClick deterministically in Play Mode and does not depend on desktop focus or synthetic input.");
+            recommendations.Add("Prefer a running Unity Editor with IPC ready before relying on `ui click`; batch fallback is not guaranteed for UI interaction commands.");
         }
     }
 
@@ -315,7 +322,8 @@ internal static class DoctorAnalyzer
     private static bool IsUiInteractionCommand(string? operation)
     {
         return string.Equals(operation, WellKnownCommands.UiToggle, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(operation, WellKnownCommands.UiInput, StringComparison.OrdinalIgnoreCase);
+            || string.Equals(operation, WellKnownCommands.UiInput, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(operation, WellKnownCommands.UiClick, StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsProcessAlive(int pid)

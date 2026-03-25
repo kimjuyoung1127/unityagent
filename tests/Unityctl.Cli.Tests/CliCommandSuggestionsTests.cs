@@ -18,6 +18,17 @@ public sealed class CliCommandSuggestionsTests
     }
 
     [CliTestFact]
+    public void TryBuildUnknownCommandResponse_WithConcretePlaySubcommand_ReturnsFalse()
+    {
+        var handled = CliCommandSuggestions.TryBuildUnknownCommandResponse(
+            ["play", "start", "--json"],
+            out _,
+            out _);
+
+        Assert.False(handled);
+    }
+
+    [CliTestFact]
     public void TryBuildUnknownCommandResponse_SuggestsNearestCommand()
     {
         var handled = CliCommandSuggestions.TryBuildUnknownCommandResponse(

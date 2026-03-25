@@ -229,6 +229,25 @@ public static class CommandCatalog
         Parameter("file", "string", "Path to a .cs script file to execute", required: false),
         Parameter("json", "bool", "Output as JSON", required: false));
 
+    public static readonly CommandDefinition ExecListCallables = Define(
+        WellKnownCommands.ExecListCallables,
+        "List public static callable types and members from the current Unity AppDomain",
+        "query",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("filter", "string", "Optional substring filter for type name or assembly", required: false),
+        Parameter("limit", "int", "Maximum number of types to return (default: 100)", required: false),
+        Parameter("json", "bool", "Output as JSON", required: false)).WithCli("exec list-callables");
+
+    public static readonly CommandDefinition ExecInvoke = Define(
+        WellKnownCommands.ExecInvoke,
+        "Invoke a public static method through structured reflection instead of raw code parsing",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("type", "string", "Full type name or unique short type name", required: true),
+        Parameter("method", "string", "Public static method name", required: true),
+        Parameter("args", "string", "Arguments as a JSON array (default: [])", required: false),
+        Parameter("json", "bool", "Output as JSON", required: false)).WithCli("exec invoke");
+
     public static readonly CommandDefinition Workflow = Define(
         WellKnownCommands.Workflow,
         "Execute a sequential workflow of unityctl commands from a JSON file",
@@ -750,6 +769,16 @@ public static class CommandCatalog
         Parameter("project", "string", "Path to Unity project", required: true),
         Parameter("id", "string", "GlobalObjectId of the UI element", required: true),
         Parameter("json", "bool", "Output as JSON", required: false)).WithCli("ui get");
+
+    public static readonly CommandDefinition UiClickCmd = Define(
+        WellKnownCommands.UiClick,
+        "Invoke a Button's onClick deterministically in Play Mode with optional scene assertion",
+        "action",
+        Parameter("project", "string", "Path to Unity project", required: true),
+        Parameter("id", "string", "GlobalObjectId of the Button GameObject", required: true),
+        Parameter("scene", "string", "Optional scene path/name or 'active' assertion before clicking", required: false),
+        Parameter("mode", "string", "Interaction mode: auto or play (default: auto, resolves to play only)", required: false),
+        Parameter("json", "bool", "Output as JSON", required: false)).WithCli("ui click");
 
     public static readonly CommandDefinition UiToggleCmd = Define(
         WellKnownCommands.UiToggle,
@@ -1472,6 +1501,8 @@ public static class CommandCatalog
         SceneDiff,
         Schema,
         Exec,
+        ExecListCallables,
+        ExecInvoke,
         Workflow,
         WorkflowVerify,
         BatchExecute,
@@ -1533,6 +1564,7 @@ public static class CommandCatalog
         UiSetRectCmd,
         UiFindCmd,
         UiGetCmd,
+        UiClickCmd,
         UiToggleCmd,
         UiInputCmd,
         // Script Editing v1

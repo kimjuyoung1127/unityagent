@@ -47,6 +47,18 @@ public sealed class CommandExecutorReadinessTests
     }
 
     [Fact]
+    public void BuildInteractiveBusyResponse_ForUiClick_AddsPlayModeGuidance()
+    {
+        var response = CommandExecutor.BuildInteractiveBusyResponse(
+            @"C:\Users\gmdqn\robotapp",
+            WellKnownCommands.UiClick);
+
+        Assert.Equal(StatusCode.Busy, response.StatusCode);
+        Assert.Contains("ui click", response.Message);
+        Assert.Contains("Button.onClick", response.Data!["followUpAction"]!.GetValue<string>());
+    }
+
+    [Fact]
     public void AttachTargetMetadata_AddsNormalizedTargetBlock()
     {
         var response = CommandExecutor.AttachTargetMetadata(

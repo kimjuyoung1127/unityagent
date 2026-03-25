@@ -61,6 +61,13 @@ public static class UiCommand
         CommandRunner.Execute(project, request, json);
     }
 
+    public static void Click(string project, string id, string? scene = null, string mode = "auto", bool json = false)
+    {
+        var request = CreateClickRequest(id, scene, mode);
+        var exitCode = ExecuteInteractiveAsync(project, request, json).GetAwaiter().GetResult();
+        Environment.Exit(exitCode);
+    }
+
     public static void Toggle(string project, string id, string value, string mode = "auto", bool json = false)
     {
         var request = CreateToggleRequest(id, value, mode);
@@ -171,6 +178,28 @@ public static class UiCommand
         {
             Command = WellKnownCommands.UiGet,
             Parameters = new JsonObject { ["id"] = id }
+        };
+    }
+
+    internal static CommandRequest CreateClickRequest(string id, string? scene = null, string mode = "auto")
+    {
+        if (string.IsNullOrWhiteSpace(id))
+            throw new ArgumentException("id must not be empty", nameof(id));
+
+        var normalizedMode = ParseInteractionMode(mode, nameof(mode));
+        var parameters = new JsonObject
+        {
+            ["id"] = id,
+            ["mode"] = normalizedMode
+        };
+
+        if (!string.IsNullOrWhiteSpace(scene))
+            parameters["scene"] = scene;
+
+        return new CommandRequest
+        {
+            Command = WellKnownCommands.UiClick,
+            Parameters = parameters
         };
     }
 
@@ -401,6 +430,7 @@ public static class UiCommand
         {
             WellKnownCommands.UiToggle => "ui toggle",
             WellKnownCommands.UiInput => "ui input",
+            WellKnownCommands.UiClick => "ui click",
             WellKnownCommands.UiScroll => "ui scroll",
             WellKnownCommands.UiSliderSet => "ui slider-set",
             WellKnownCommands.UiDropdownSet => "ui dropdown-set",

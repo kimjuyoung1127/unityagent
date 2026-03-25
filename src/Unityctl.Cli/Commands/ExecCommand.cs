@@ -24,6 +24,18 @@ public static class ExecCommand
         CommandRunner.Execute(project, request, json);
     }
 
+    public static void ListCallables(string project, string? filter = null, int? limit = null, bool json = false)
+    {
+        var request = CreateListCallablesRequest(filter, limit);
+        CommandRunner.Execute(project, request, json);
+    }
+
+    public static void Invoke(string project, string type, string method, string? args = null, bool json = false)
+    {
+        var request = CreateInvokeRequest(type, method, args);
+        CommandRunner.Execute(project, request, json);
+    }
+
     /// <summary>
     /// Resolves the C# code string from either inline --code or --file argument.
     /// Returns null if neither is provided.
@@ -57,6 +69,44 @@ public static class ExecCommand
         {
             Command = WellKnownCommands.Exec,
             Parameters = new JsonObject { ["code"] = code }
+        };
+    }
+
+    internal static CommandRequest CreateListCallablesRequest(string? filter = null, int? limit = null)
+    {
+        var parameters = new JsonObject();
+        if (!string.IsNullOrWhiteSpace(filter))
+            parameters["filter"] = filter;
+        if (limit.HasValue)
+            parameters["limit"] = limit.Value;
+
+        return new CommandRequest
+        {
+            Command = WellKnownCommands.ExecListCallables,
+            Parameters = parameters
+        };
+    }
+
+    internal static CommandRequest CreateInvokeRequest(string type, string method, string? args = null)
+    {
+        if (string.IsNullOrWhiteSpace(type))
+            throw new ArgumentException("type must not be empty", nameof(type));
+        if (string.IsNullOrWhiteSpace(method))
+            throw new ArgumentException("method must not be empty", nameof(method));
+
+        var parameters = new JsonObject
+        {
+            ["type"] = type,
+            ["method"] = method
+        };
+
+        if (!string.IsNullOrWhiteSpace(args))
+            parameters["args"] = args;
+
+        return new CommandRequest
+        {
+            Command = WellKnownCommands.ExecInvoke,
+            Parameters = parameters
         };
     }
 }
