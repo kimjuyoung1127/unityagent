@@ -1,0 +1,460 @@
+{
+  "version": "0.2.0",
+  "commands": [
+    {
+      "name": "init",
+      "description": "Install the unityctl plugin into a Unity project",
+      "category": "setup",
+      "parameters": [
+        {
+          "name": "project",
+          "type": "string",
+          "description": "Path to Unity project",
+          "required": true
+        },
+        {
+          "name": "source",
+          "type": "string",
+          "description": "Custom local plugin source path",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "editor list",
+      "description": "Discover installed Unity editors",
+      "category": "discovery",
+      "parameters": [
+        {
+          "name": "json",
+          "type": "bool",
+          "description": "Output as JSON",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ping",
+      "description": "Verify unityctl connectivity to a Unity project",
+      "category": "query",
+      "parameters": [
+        {
+          "name": "project",
+          "type": "string",
+          "description": "Path to Unity project",
+          "required": true
+        },
+        {
+          "name": "json",
+          "type": "bool",
+          "description": "Output as JSON",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "status",
+      "description": "Check Unity editor and project status",
+      "category": "query",
+      "parameters": [
+        {
+          "name": "project",
+          "type": "string",
+          "description": "Path to Unity project",
+          "required": true
+        },
+        {
+          "name": "wait",
+          "type": "bool",
+          "description": "Retry until editor responds",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "bool",
+          "description": "Output as JSON",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "build",
+      "description": "Build a Unity project for a target platform",
+      "category": "action",
+      "parameters": [
+        {
+          "name": "project",
+          "type": "string",
+          "description": "Path to Unity project",
+          "required": true
+        },
+        {
+          "name": "target",
+          "type": "string",
+          "description": "Build target (StandaloneWindows64, OSX, Linux, Android, iOS, WebGL)",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "string",
+          "description": "Output path for build artifacts",
+          "required": false
+        },
+        {
+          "name": "dryRun",
+          "type": "bool",
+          "description": "Validate without building (preflight check)",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "bool",
+          "description": "Output as JSON",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "test",
+      "description": "Start Unity tests (EditMode or PlayMode)",
+      "category": "action",
+      "parameters": [
+        {
+          "name": "project",
+          "type": "string",
+          "description": "Path to Unity project",
+          "required": true
+        },
+        {
+          "name": "mode",
+          "type": "string",
+          "description": "Test mode: edit or play",
+          "required": false
+        },
+        {
+          "name": "filter",
+          "type": "string",
+          "description": "Test name filter",
+          "required": false
+        },
+        {
+          "name": "wait",
+          "type": "bool",
+          "description": "Wait for test completion (default: true, disabled for PlayMode)",
+          "required": false
+        },
+        {
+          "name": "timeout",
+          "type": "int",
+          "description": "Timeout in seconds when waiting (default: 300)",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "bool",
+          "description": "Output as JSON",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "check",
+      "description": "Check whether Unity scripts compiled successfully",
+      "category": "action",
+      "parameters": [
+        {
+          "name": "project",
+          "type": "string",
+          "description": "Path to Unity project",
+          "required": true
+        },
+        {
+          "name": "type",
+          "type": "string",
+          "description": "Check type: compile",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "bool",
+          "description": "Output as JSON",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "tools",
+      "description": "List all available tools with parameters",
+      "category": "meta",
+      "parameters": [
+        {
+          "name": "json",
+          "type": "bool",
+          "description": "Output as machine-readable JSON",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "log",
+      "description": "Query and manage command execution logs",
+      "category": "query",
+      "parameters": [
+        {
+          "name": "last",
+          "type": "int",
+          "description": "Show last N entries (default: 20)",
+          "required": false
+        },
+        {
+          "name": "tail",
+          "type": "bool",
+          "description": "Follow log file in real-time",
+          "required": false
+        },
+        {
+          "name": "op",
+          "type": "string",
+          "description": "Filter by operation (build, test, etc)",
+          "required": false
+        },
+        {
+          "name": "level",
+          "type": "string",
+          "description": "Filter by level (info, warn, error)",
+          "required": false
+        },
+        {
+          "name": "since",
+          "type": "string",
+          "description": "Filter since date/time (ISO 8601)",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "bool",
+          "description": "Output as JSON",
+          "required": false
+        },
+        {
+          "name": "prune",
+          "type": "bool",
+          "description": "Apply retention policy (30 days / 50 MB)",
+          "required": false
+        },
+        {
+          "name": "stats",
+          "type": "bool",
+          "description": "Show log statistics",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "session list",
+      "description": "List active and recent command execution sessions",
+      "category": "meta",
+      "parameters": [
+        {
+          "name": "json",
+          "type": "bool",
+          "description": "Output as JSON",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "session stop",
+      "description": "Cancel a running session",
+      "category": "action",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "description": "Session ID to cancel",
+          "required": true
+        },
+        {
+          "name": "json",
+          "type": "bool",
+          "description": "Output as JSON",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "session clean",
+      "description": "Remove stale sessions and apply TTL retention policy",
+      "category": "action",
+      "parameters": []
+    },
+    {
+      "name": "watch",
+      "description": "Stream real-time events from a running Unity Editor",
+      "category": "stream",
+      "parameters": [
+        {
+          "name": "project",
+          "type": "string",
+          "description": "Path to Unity project",
+          "required": true
+        },
+        {
+          "name": "channel",
+          "type": "string",
+          "description": "Event channel: console, hierarchy, compilation, all (default: all)",
+          "required": false
+        },
+        {
+          "name": "format",
+          "type": "string",
+          "description": "Output format: text, json (default: text)",
+          "required": false
+        },
+        {
+          "name": "no-color",
+          "type": "bool",
+          "description": "Disable colored output",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "scene snapshot",
+      "description": "Capture a snapshot of all scene objects and their serialized properties",
+      "category": "query",
+      "parameters": [
+        {
+          "name": "project",
+          "type": "string",
+          "description": "Path to Unity project",
+          "required": true
+        },
+        {
+          "name": "scenePath",
+          "type": "string",
+          "description": "Filter to a specific scene path",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "bool",
+          "description": "Output as JSON",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "scene diff",
+      "description": "Compare two scene snapshots and report property-level changes",
+      "category": "query",
+      "parameters": [
+        {
+          "name": "snap1",
+          "type": "string",
+          "description": "Path to base snapshot JSON file",
+          "required": false
+        },
+        {
+          "name": "snap2",
+          "type": "string",
+          "description": "Path to head snapshot JSON file",
+          "required": false
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "description": "Path to Unity project (for --live mode)",
+          "required": false
+        },
+        {
+          "name": "live",
+          "type": "bool",
+          "description": "Compare current scene against last snapshot",
+          "required": false
+        },
+        {
+          "name": "epsilon",
+          "type": "double",
+          "description": "Float comparison threshold (default: 1e-6)",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "bool",
+          "description": "Output as JSON",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "schema",
+      "description": "Output machine-readable JSON schema of all available commands",
+      "category": "meta",
+      "parameters": [
+        {
+          "name": "format",
+          "type": "string",
+          "description": "Output format: json (default: json)",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "exec",
+      "description": "Execute a C# expression in the Unity Editor via reflection",
+      "category": "action",
+      "parameters": [
+        {
+          "name": "project",
+          "type": "string",
+          "description": "Path to Unity project",
+          "required": true
+        },
+        {
+          "name": "code",
+          "type": "string",
+          "description": "C# expression to evaluate (e.g. \u0027EditorApplication.isPlaying = true\u0027)",
+          "required": false
+        },
+        {
+          "name": "file",
+          "type": "string",
+          "description": "Path to a .cs script file to execute",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "bool",
+          "description": "Output as JSON",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "workflow",
+      "description": "Execute a sequential workflow of unityctl commands from a JSON file",
+      "category": "action",
+      "parameters": [
+        {
+          "name": "file",
+          "type": "string",
+          "description": "Path to workflow JSON definition file",
+          "required": true
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "description": "Default project path for steps that omit it",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "bool",
+          "description": "Output results as JSON",
+          "required": false
+        }
+      ]
+    }
+  ]
+}
