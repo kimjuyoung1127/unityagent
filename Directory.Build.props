@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <UnityctlVersion>0.3.0</UnityctlVersion>
+    <UnityctlVersion>0.3.1</UnityctlVersion>
     <Version Condition="'$(Version)' == ''">$(UnityctlVersion)</Version>
     <LangVersion>12</LangVersion>
     <Nullable>enable</Nullable>
