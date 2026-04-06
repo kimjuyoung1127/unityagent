@@ -48,6 +48,7 @@ public static class DoctorCommand
 
         var platform = PlatformFactory.Create();
         var discovery = new UnityEditorDiscovery(platform);
+        var processDetector = new UnityProcessDetector(platform);
         var editors = discovery.FindEditors();
         var editorFound = editors.Count > 0;
         var editorVersion = editors.FirstOrDefault()?.Version ?? "not found";
@@ -76,6 +77,8 @@ public static class DoctorCommand
         var lockFilePath = Path.Combine(Path.GetFullPath(project), "Temp", "UnityLockfile");
         var lockFileExists = File.Exists(lockFilePath);
         var projectLocked = platform.IsProjectLocked(project);
+        var runningProcesses = processDetector.FindProcessesForProject(project);
+        var interactiveProcesses = processDetector.FindInteractiveProcessesForProject(project);
         var buildState = GetBuildStateInfo(project);
 
         var structuredDiagnostics = EditorLogDiagnostics.GetStructuredDiagnostics();
@@ -131,6 +134,9 @@ public static class DoctorCommand
             IpcPipePresent = ipcPipePresent,
             BridgeLoaded = bridgeLoaded,
             ProjectLocked = projectLocked,
+            RunningProcessCount = runningProcesses.Count,
+            InteractiveProcessCount = interactiveProcesses.Count,
+            HeadlessProcessCount = runningProcesses.Count(process => process.IsBatchMode),
             IsCompiling = isCompiling,
             IsDomainReloading = isDomainReloading,
             LockFilePath = lockFilePath,
@@ -277,6 +283,13 @@ public static class DoctorCommand
                 ["lockFilePath"] = result.LockFilePath,
                 ["lockFileExists"] = result.LockFileExists
             },
+            ["processes"] = new JsonObject
+            {
+                ["runningProcessCount"] = result.RunningProcessCount,
+                ["interactiveProcessCount"] = result.InteractiveProcessCount,
+                ["headlessProcessCount"] = result.HeadlessProcessCount,
+                ["interactiveEditorDetected"] = result.InteractiveProcessCount > 0
+            },
             ["buildState"] = new JsonObject
             {
                 ["directory"] = result.BuildStateDirectory,
@@ -370,6 +383,7 @@ public static class DoctorCommand
             : result.ProjectLocked
             ? $"  \u26a0 Project lock detected: {result.LockFilePath}"
             : $"  \u2713 Project lock: not detected ({result.LockFilePath})");
+        lines.Add($"  \u2713 Running processes: {result.RunningProcessCount} total / {result.InteractiveProcessCount} interactive / {result.HeadlessProcessCount} headless");
 
         if (result.IsCompiling.HasValue || result.IsDomainReloading.HasValue)
         {

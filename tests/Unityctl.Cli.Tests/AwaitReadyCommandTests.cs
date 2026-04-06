@@ -75,7 +75,8 @@ public sealed class AwaitReadyCommandTests
                         }
                     }));
             },
-            delayAsync: (_, _) => Task.CompletedTask);
+            delayAsync: (_, _) => Task.CompletedTask,
+            isInteractiveEditorRunning: _ => true);
 
         Assert.True(response.Success);
         Assert.Equal(StatusCode.Ready, response.StatusCode);
@@ -94,10 +95,34 @@ public sealed class AwaitReadyCommandTests
                 Success = false,
                 Message = "Unity Editor is running but IPC is not ready yet."
             }),
-            delayAsync: (_, _) => Task.CompletedTask);
+            delayAsync: (_, _) => Task.CompletedTask,
+            isInteractiveEditorRunning: _ => true);
 
         Assert.False(response.Success);
         Assert.Equal(StatusCode.Busy, response.StatusCode);
         Assert.Contains("doctor", response.Data!["recommendedNextCommand"]!.GetValue<string>());
+    }
+
+    [CliTestFact]
+    public async Task ExecuteAsync_ReturnsNoInteractiveEditorResponse_WhenEditorIsNotInteractive()
+    {
+        var response = await AwaitReadyCommand.ExecuteAsync(
+            @"C:\project",
+            timeoutSeconds: 5,
+            statusAsync: _ => Task.FromResult(CommandResponse.Ok("Ready", new JsonObject
+            {
+                ["isCompiling"] = false,
+                ["isDomainReloading"] = false,
+                ["target"] = new JsonObject
+                {
+                    ["transport"] = "batch"
+                }
+            })),
+            delayAsync: (_, _) => Task.CompletedTask,
+            isInteractiveEditorRunning: _ => false);
+
+        Assert.False(response.Success);
+        Assert.Equal(StatusCode.Busy, response.StatusCode);
+        Assert.Contains("interactive Unity Editor", response.Message);
     }
 }

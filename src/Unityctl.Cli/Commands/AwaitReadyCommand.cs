@@ -31,6 +31,7 @@ public static class AwaitReadyCommand
         int timeoutSeconds,
         Func<string, Task<CommandResponse>>? statusAsync = null,
         Func<TimeSpan, CancellationToken, Task>? delayAsync = null,
+        Func<string, bool>? isInteractiveEditorRunning = null,
         CancellationToken ct = default)
     {
         if (timeoutSeconds <= 0)
@@ -38,6 +39,8 @@ public static class AwaitReadyCommand
 
         statusAsync ??= CreateStatusProbeAsync;
         delayAsync ??= static (delay, cancellationToken) => Task.Delay(delay, cancellationToken);
+        var platform = PlatformFactory.Create();
+        var interactiveCheck = isInteractiveEditorRunning ?? (path => new UnityProcessDetector(platform).IsInteractiveEditorRunning(path));
 
         var sw = Stopwatch.StartNew();
         var attempt = 0;
@@ -57,6 +60,9 @@ public static class AwaitReadyCommand
                 lastResponse.Data["recommendedNextCommand"] = "Proceed with build, check, or other IPC-backed commands.";
                 return lastResponse;
             }
+
+            if (!interactiveCheck(project))
+                return CreateNoInteractiveEditorResponse(project, sw.ElapsedMilliseconds, attempt, lastResponse);
 
             await delayAsync(PollDelay, ct).ConfigureAwait(false);
         }
@@ -94,6 +100,33 @@ public static class AwaitReadyCommand
             ["attempts"] = attempts,
             ["elapsedMs"] = elapsedMs,
             ["recommendedNextCommand"] = $"unityctl doctor --project \"{project}\" --json"
+        };
+
+        if (lastResponse?.StatusCode != null)
+            response.Data["lastStatusCode"] = (int)lastResponse.StatusCode;
+        if (!string.IsNullOrWhiteSpace(lastResponse?.Message))
+            response.Data["lastMessage"] = lastResponse.Message;
+        if (lastResponse?.Data != null)
+            response.Data["lastData"] = lastResponse.Data.DeepClone();
+
+        return response;
+    }
+
+    internal static CommandResponse CreateNoInteractiveEditorResponse(
+        string project,
+        long elapsedMs,
+        int attempts,
+        CommandResponse? lastResponse)
+    {
+        var response = CommandResponse.Fail(
+            StatusCode.Busy,
+            "No interactive Unity Editor is running for this project, so await-ready cannot wait for IPC stability.");
+
+        response.Data = new JsonObject
+        {
+            ["attempts"] = attempts,
+            ["elapsedMs"] = elapsedMs,
+            ["recommendedNextCommand"] = $"unityctl status --project \"{project}\" --json"
         };
 
         if (lastResponse?.StatusCode != null)

@@ -53,6 +53,7 @@ namespace Unityctl.Plugin.Editor.Ipc
         private int _nextPipeId;
 
         private readonly ConcurrentQueue<PendingWork> _mainThreadQueue = new ConcurrentQueue<PendingWork>();
+        private long _lastExpectedConnectionWarningTicks;
 
         // Watch session state
         private readonly ConcurrentQueue<EventEnvelope> _watchQueue = new ConcurrentQueue<EventEnvelope>();
@@ -256,7 +257,7 @@ namespace Unityctl.Plugin.Editor.Ipc
                         continue;
                     }
 
-                    if (!_stopping)
+                    if (!_stopping && !IsExpectedConnectionError(ex))
                         Debug.LogWarning($"[unityctl] IPC connection error: {ex.Message}");
                 }
                 catch (Exception ex)
@@ -336,7 +337,7 @@ namespace Unityctl.Plugin.Editor.Ipc
             }
             catch (IOException ex)
             {
-                if (!_stopping)
+                if (!_stopping && !IsExpectedConnectionError(ex))
                     Debug.LogWarning($"[unityctl] IPC connection error: {ex.Message}");
             }
             catch (Exception ex)
@@ -589,6 +590,25 @@ namespace Unityctl.Plugin.Editor.Ipc
         private static bool IsPipeBusy(IOException exception)
         {
             return (exception.HResult & 0xFFFF) == ErrorPipeBusy;
+        }
+
+        private bool IsExpectedConnectionError(IOException exception)
+        {
+            var message = exception.Message ?? string.Empty;
+            var expected = message.IndexOf("pipe is broken", StringComparison.OrdinalIgnoreCase) >= 0
+                           || message.IndexOf("pipe is being closed", StringComparison.OrdinalIgnoreCase) >= 0
+                           || message.IndexOf("connection has been ended", StringComparison.OrdinalIgnoreCase) >= 0
+                           || message.IndexOf("connection was aborted", StringComparison.OrdinalIgnoreCase) >= 0;
+            if (!expected)
+                return false;
+
+            var nowTicks = DateTime.UtcNow.Ticks;
+            var previousTicks = Interlocked.Read(ref _lastExpectedConnectionWarningTicks);
+            if (nowTicks - previousTicks < TimeSpan.FromSeconds(30).Ticks)
+                return true;
+
+            Interlocked.Exchange(ref _lastExpectedConnectionWarningTicks, nowTicks);
+            return true;
         }
     }
 }

@@ -18,6 +18,7 @@ public sealed class BatchTransport : ITransport
     private readonly IPlatformServices _platform;
     private readonly UnityEditorDiscovery _discovery;
     private readonly string _projectPath;
+    private readonly UnityProcessDetector _processDetector;
 
     public string Name => "batch";
     public TransportCapability Capabilities => TransportCapability.Command;
@@ -27,14 +28,29 @@ public sealed class BatchTransport : ITransport
         _platform = platform;
         _discovery = discovery;
         _projectPath = Path.GetFullPath(projectPath);
+        _processDetector = new UnityProcessDetector(_platform);
     }
 
     public async Task<CommandResponse> SendAsync(CommandRequest request, CancellationToken ct = default)
     {
         if (_platform.IsProjectLocked(_projectPath))
         {
+            var interactiveProcess = _processDetector.FindInteractiveProcessForProject(_projectPath);
+            if (interactiveProcess != null)
+            {
+                return CommandResponse.Fail(StatusCode.ProjectLocked,
+                    "Editor is running; IPC is not ready yet. Try `unityctl status --wait` before falling back to batch.");
+            }
+
+            var process = _processDetector.FindProcessForProject(_projectPath);
+            if (process != null)
+            {
+                return CommandResponse.Fail(StatusCode.Busy,
+                    $"A headless Unity process (pid {process.ProcessId}) is holding the project lock. Wait for it to exit before retrying batch commands.");
+            }
+
             return CommandResponse.Fail(StatusCode.ProjectLocked,
-                "Editor is running; IPC is not ready yet. Try `unityctl status --wait` before falling back to batch.");
+                "Project lock is still held. Retry after the current Unity process exits or the stale lock clears.");
         }
 
         var editor = _discovery.FindEditorForProject(_projectPath);

@@ -37,7 +37,24 @@ namespace Unityctl.Plugin.Editor.Commands
             }
             catch (ExecParseException ex)
             {
-                return Fail(StatusCode.InvalidParameters, $"Parse error: {ex.Message}");
+                return Fail(
+                    StatusCode.InvalidParameters,
+                    $"{ex.Message} Supported forms: Type.Member, Type.Member = value, Type.Method(arg1, arg2). For structured calls, prefer exec invoke.");
+            }
+            catch (ExecInvocationException ex)
+            {
+                return Fail(
+                    StatusCode.UnknownError,
+                    $"Execution error: {ex.InnerTypeName}: {ex.Message}",
+                    new JObject
+                    {
+                        ["type"] = ex.TypeName,
+                        ["member"] = ex.MemberName,
+                        ["innerExceptionType"] = ex.InnerTypeName
+                    },
+                    string.IsNullOrWhiteSpace(ex.InnerStackTrace)
+                        ? null
+                        : new System.Collections.Generic.List<string> { ex.InnerStackTrace });
             }
             catch (Exception ex)
             {

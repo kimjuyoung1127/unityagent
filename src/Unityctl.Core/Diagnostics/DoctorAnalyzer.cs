@@ -160,6 +160,9 @@ internal static class DoctorAnalyzer
         if (snapshot.IpcConnected)
             return "healthy";
 
+        if (snapshot.HeadlessProcessCount > 0 && snapshot.InteractiveProcessCount == 0)
+            return "headless-process-blocking";
+
         if (snapshot.ProjectLocked)
             return "starting-or-reloading";
 
@@ -185,6 +188,7 @@ internal static class DoctorAnalyzer
             "plugin-missing" => "The Unity bridge package is not configured in this project yet.",
             "editor-missing" => "No compatible Unity Editor installation was discovered for this environment.",
             "starting-or-reloading" => "Unity appears to be compiling, reloading, or still bringing IPC online.",
+            "headless-process-blocking" => "A headless Unity process is holding the project lock, so IPC-backed commands cannot recover automatically.",
             "transport-degraded" => "Recent failures suggest IPC is unavailable and batch fallback is unreliable for this project.",
             "plugin-mismatch-suspected" => "Recent command mismatches suggest the Unity plugin may not match the CLI command set yet.",
             _ => "Doctor could not classify the current project state."
@@ -220,6 +224,10 @@ internal static class DoctorAnalyzer
                 recommendations.Add($"Use `unityctl watch --project \"{projectPath}\" --channel compilation` to observe reload/compile completion.");
                 AddScriptSpecificRecommendations(recommendations, projectPath, analysis);
                 AddUiSpecificRecommendations(recommendations, analysis);
+                break;
+            case "headless-process-blocking":
+                recommendations.Add("A headless Unity batchmode process is currently blocking interactive recovery. Wait for it to exit before retrying IPC-backed commands.");
+                recommendations.Add($"Run `unityctl editor instances --json` or inspect the OS process list to confirm no batch/headless Unity process is still targeting `{projectPath}`.");
                 break;
             case "plugin-mismatch-suspected":
                 recommendations.Add("Reopen the Unity Editor or wait for package import/domain reload so the plugin command registry refreshes.");
@@ -368,6 +376,9 @@ internal sealed class DoctorSnapshot
     public bool IpcPipePresent { get; set; }
     public bool BridgeLoaded { get; set; }
     public bool ProjectLocked { get; set; }
+    public int RunningProcessCount { get; set; }
+    public int InteractiveProcessCount { get; set; }
+    public int HeadlessProcessCount { get; set; }
     public bool? IsCompiling { get; set; }
     public bool? IsDomainReloading { get; set; }
     public string LockFilePath { get; set; } = string.Empty;

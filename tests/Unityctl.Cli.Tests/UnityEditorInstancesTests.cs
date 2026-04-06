@@ -20,7 +20,10 @@ public sealed class UnityEditorInstancesTests
                 Version = "6000.0.64f1",
                 EditorLocation = @"C:\Program Files\Unity\Hub\Editor\6000.0.64f1",
                 PipeName = "unityctl_dd58be40d478d9be",
-                IpcReady = true
+                IpcReady = true,
+                IsBatchMode = false,
+                HasMainWindow = true,
+                ProcessKind = "interactive"
             }
         ];
 
@@ -40,6 +43,7 @@ public sealed class UnityEditorInstancesTests
         Assert.NotNull(parsed);
         Assert.Single(parsed!);
         Assert.Equal(55028, parsed[0].ProcessId);
+        Assert.Equal("interactive", parsed[0].ProcessKind);
     }
 
     [CliTestFact]

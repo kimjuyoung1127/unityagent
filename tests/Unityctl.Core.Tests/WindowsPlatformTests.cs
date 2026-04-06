@@ -40,4 +40,15 @@ public sealed class WindowsPlatformTests
 
         Assert.Equal("6000.0.64f1", version);
     }
+
+    [Theory]
+    [InlineData("\"C:\\Program Files\\Unity\\Hub\\Editor\\6000.0.64f1\\Editor\\Unity.exe\" -projectPath \"C:\\Project\" -batchmode -nographics", true)]
+    [InlineData("\"C:\\Program Files\\Unity\\Hub\\Editor\\6000.0.64f1\\Editor\\Unity.exe\" -projectPath \"C:\\Project\"", false)]
+    public void IsBatchModeCommandLine_DetectsHeadlessProcesses(string commandLine, bool expected)
+    {
+        if (!OperatingSystem.IsWindows())
+            return;
+
+        Assert.Equal(expected, WindowsPlatform.IsBatchModeCommandLine(commandLine));
+    }
 }

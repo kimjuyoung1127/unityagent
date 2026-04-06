@@ -15,6 +15,7 @@ namespace Unityctl.Plugin.Editor.Commands
 #if UNITY_EDITOR
             var path = request.GetParam("path", null);
             var mode = request.GetParam("mode", "single");
+            var dirtyPolicy = ResolveDirtyPolicy(request);
             var force = request.GetParam<bool>("force");
             var saveCurrentModified = request.GetParam<bool>("saveCurrentModified");
 
@@ -35,19 +36,29 @@ namespace Unityctl.Plugin.Editor.Commands
                 var dirtyScenes = GetDirtyLoadedScenePaths();
                 if (dirtyScenes.Count > 0)
                 {
-                    if (saveCurrentModified)
+                    if (dirtyPolicy == "save" || saveCurrentModified)
                     {
                         if (!EditorSceneManager.SaveOpenScenes())
                             return Fail(StatusCode.UnknownError, "Failed to save dirty scenes before opening a new scene.");
                     }
-                    else if (!force)
+                    else if (dirtyPolicy == "discard" || force)
+                    {
+                        // Explicit discard; EditorSceneManager.OpenScene(single) will replace the setup.
+                    }
+                    else
                     {
                         return Fail(
                             StatusCode.InvalidParameters,
-                            "Dirty loaded scenes exist. Pass force=true to discard or saveCurrentModified=true to save first.",
+                            "Dirty loaded scenes exist. Retry with dirtyPolicy=save or dirtyPolicy=discard.",
                             new JObject
                             {
-                                ["dirtyScenes"] = JArray.FromObject(dirtyScenes)
+                                ["dirtyScenes"] = JArray.FromObject(dirtyScenes),
+                                ["dirtyPolicy"] = dirtyPolicy,
+                                ["retryExamples"] = new JArray
+                                {
+                                    "scene open --dirty-policy save",
+                                    "scene open --dirty-policy discard"
+                                }
                             });
                     }
                 }
@@ -62,6 +73,7 @@ namespace Unityctl.Plugin.Editor.Commands
                 ["scenePath"] = scene.path,
                 ["sceneName"] = scene.name,
                 ["mode"] = mode,
+                ["dirtyPolicy"] = dirtyPolicy,
                 ["isLoaded"] = scene.isLoaded,
                 ["isActive"] = UnityEngine.SceneManagement.SceneManager.GetActiveScene().path == scene.path
             });
@@ -87,6 +99,18 @@ namespace Unityctl.Plugin.Editor.Commands
 
             openMode = OpenSceneMode.Single;
             return false;
+        }
+
+        private static string ResolveDirtyPolicy(CommandRequest request)
+        {
+            var dirtyPolicy = request.GetParam("dirtyPolicy", null);
+            if (!string.IsNullOrWhiteSpace(dirtyPolicy))
+                return dirtyPolicy.Trim().ToLowerInvariant();
+            if (request.GetParam<bool>("saveCurrentModified"))
+                return "save";
+            if (request.GetParam<bool>("force"))
+                return "discard";
+            return "fail";
         }
 
         private static List<string> GetDirtyLoadedScenePaths()

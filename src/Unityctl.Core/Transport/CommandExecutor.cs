@@ -20,12 +20,14 @@ public sealed class CommandExecutor
     private readonly IPlatformServices _platform;
     private readonly UnityEditorDiscovery _discovery;
     private readonly RetryPolicy _retryPolicy;
+    private readonly UnityProcessDetector _processDetector;
 
     public CommandExecutor(IPlatformServices platform, UnityEditorDiscovery discovery, RetryPolicy? retryPolicy = null)
     {
         _platform = platform;
         _discovery = discovery;
         _retryPolicy = retryPolicy ?? new RetryPolicy();
+        _processDetector = new UnityProcessDetector(_platform);
     }
 
     /// <summary>
@@ -55,9 +57,9 @@ public sealed class CommandExecutor
         CancellationToken ct)
     {
         // IPC first: probe checks if an Editor with IPC server is running
-        await using var ipc = new IpcTransport(projectPath);
-        var processDetector = new UnityProcessDetector(_platform);
-        var process = processDetector.FindProcessForProject(projectPath);
+        await using var ipc = new IpcTransport(projectPath, _platform, _processDetector);
+        var process = _processDetector.FindProcessForProject(projectPath);
+        var interactiveProcess = _processDetector.FindInteractiveProcessForProject(projectPath);
         var editor = _discovery.FindEditorForProject(projectPath);
         var projectLocked = _platform.IsProjectLocked(projectPath);
         if (await ipc.ProbeAsync(ct))
@@ -66,7 +68,7 @@ public sealed class CommandExecutor
             return AttachTargetMetadata(response, projectPath, "ipc", editor, process, projectLocked, null);
         }
 
-        if (projectLocked)
+        if (projectLocked && interactiveProcess != null)
         {
             for (var attempt = 0; attempt < LockedProjectProbeRetries; attempt++)
             {
@@ -79,7 +81,13 @@ public sealed class CommandExecutor
             }
 
             var pending = BuildInteractiveBusyResponse(projectPath, request.Command);
-            return AttachTargetMetadata(pending, projectPath, null, editor, process, projectLocked, "editor-running-ipc-not-ready");
+            return AttachTargetMetadata(pending, projectPath, null, editor, interactiveProcess, projectLocked, "editor-running-ipc-not-ready");
+        }
+
+        if (projectLocked && process != null)
+        {
+            var pending = BuildHeadlessBusyResponse(request.Command, process);
+            return AttachTargetMetadata(pending, projectPath, null, editor, process, projectLocked, "headless-process-holding-lock");
         }
 
         // Fallback: batch transport (only when probe fails, NOT on SendAsync failure)
@@ -133,6 +141,9 @@ public sealed class CommandExecutor
         {
             target["unityPid"] = process.ProcessId;
             target["isRunning"] = true;
+            target["isBatchMode"] = process.IsBatchMode;
+            target["hasMainWindow"] = process.HasMainWindow;
+            target["processKind"] = process.IsInteractiveEditor ? "interactive" : process.IsBatchMode ? "headless" : "background";
         }
         else
         {
@@ -195,6 +206,31 @@ public sealed class CommandExecutor
         return CommandResponse.Fail(
             StatusCode.Busy,
             "Unity Editor is running but IPC is not ready yet. Wait for compilation/domain reload to finish and retry.");
+    }
+
+    internal static CommandResponse BuildHeadlessBusyResponse(string command, UnityProcessInfo process)
+    {
+        var cliCommand = command switch
+        {
+            WellKnownCommands.ProjectValidate => "project validate",
+            WellKnownCommands.ExecListCallables => "exec list-callables",
+            _ => command
+        };
+
+        return new CommandResponse
+        {
+            StatusCode = StatusCode.Busy,
+            Success = false,
+            Message = $"A headless Unity process is holding the project lock, so `{cliCommand}` cannot wait for IPC readiness.",
+            Data = new JsonObject
+            {
+                ["command"] = cliCommand,
+                ["requiresInteractiveEditor"] = true,
+                ["recommendedAction"] = $"Wait for the batch/headless Unity process (pid {process.ProcessId}) to exit, or open the project in the interactive Editor before retrying.",
+                ["processKind"] = process.IsBatchMode ? "headless" : "background",
+                ["unityPid"] = process.ProcessId
+            }
+        };
     }
 
     /// <summary>

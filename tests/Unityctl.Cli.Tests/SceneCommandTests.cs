@@ -88,6 +88,7 @@ public sealed class SceneCommandTests
         Assert.Equal(WellKnownCommands.SceneOpen, request.Command);
         Assert.Equal("Assets/Scenes/Main.unity", request.Parameters!["path"]?.GetValue<string>());
         Assert.Equal("additive", request.Parameters["mode"]?.GetValue<string>());
+        Assert.Equal("fail", request.Parameters["dirtyPolicy"]?.GetValue<string>());
     }
 
     [CliTestFact]
@@ -100,6 +101,18 @@ public sealed class SceneCommandTests
 
         Assert.True(request.Parameters!["force"]?.GetValue<bool>());
         Assert.True(request.Parameters["saveCurrentModified"]?.GetValue<bool>());
+        Assert.Equal("save", request.Parameters["dirtyPolicy"]?.GetValue<string>());
+    }
+
+    [CliTestFact]
+    public void CreateOpenRequest_DirtyPolicy_OverridesLegacyFlags()
+    {
+        var request = SceneCommand.CreateOpenRequest(
+            "Assets/Scenes/Main.unity",
+            dirtyPolicy: "discard",
+            saveCurrentModified: true);
+
+        Assert.Equal("discard", request.Parameters!["dirtyPolicy"]?.GetValue<string>());
     }
 
     [CliTestFact]
@@ -120,12 +133,22 @@ public sealed class SceneCommandTests
         Assert.Equal("Assets/Scenes/NewScene.unity", request.Parameters!["path"]?.GetValue<string>());
         Assert.Equal("empty", request.Parameters["template"]?.GetValue<string>());
         Assert.Equal("additive", request.Parameters["mode"]?.GetValue<string>());
+        Assert.Equal("fail", request.Parameters["dirtyPolicy"]?.GetValue<string>());
     }
 
     [CliTestFact]
     public void CreateCreateRequest_EmptyPath_Throws()
     {
         Assert.Throws<ArgumentException>(() => SceneCommand.CreateCreateRequest(""));
+    }
+
+    [CliTestFact]
+    public void ResolveDirtyPolicy_PrefersExplicitValue()
+    {
+        Assert.Equal("discard", SceneCommand.ResolveDirtyPolicy("discard", force: false, saveCurrentModified: true));
+        Assert.Equal("save", SceneCommand.ResolveDirtyPolicy(null, force: false, saveCurrentModified: true));
+        Assert.Equal("discard", SceneCommand.ResolveDirtyPolicy(null, force: true, saveCurrentModified: false));
+        Assert.Equal("fail", SceneCommand.ResolveDirtyPolicy(null, force: false, saveCurrentModified: false));
     }
 
     [CliTestFact]

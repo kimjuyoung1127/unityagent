@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Management;
 using System.Text.RegularExpressions;
 using Unityctl.Shared.Models;
@@ -50,7 +51,10 @@ public sealed class WindowsPlatform : PlatformServicesBase
                     ProcessId = processId,
                     ProjectPath = TryParseProjectPath(commandLine),
                     Version = TryParseVersionFromExecutablePath(executablePath),
-                    ExecutablePath = executablePath
+                    ExecutablePath = executablePath,
+                    IsBatchMode = IsBatchModeCommandLine(commandLine),
+                    HasMainWindow = TryDetectMainWindow(processId),
+                    CommandLineSource = commandLine
                 });
             }
         }
@@ -109,6 +113,39 @@ public sealed class WindowsPlatform : PlatformServicesBase
         catch
         {
             return null;
+        }
+    }
+
+    internal static bool IsBatchModeCommandLine(string? commandLine)
+    {
+        if (string.IsNullOrWhiteSpace(commandLine))
+            return false;
+
+        return ContainsSwitch(commandLine, "-batchmode")
+               || ContainsSwitch(commandLine, "-nographics")
+               || ContainsSwitch(commandLine, "-adb2");
+    }
+
+    private static bool ContainsSwitch(string commandLine, string switchName)
+    {
+        return commandLine.IndexOf($" {switchName} ", StringComparison.OrdinalIgnoreCase) >= 0
+               || commandLine.IndexOf($" {switchName}\"", StringComparison.OrdinalIgnoreCase) >= 0
+               || commandLine.IndexOf($"\"{switchName}\"", StringComparison.OrdinalIgnoreCase) >= 0
+               || commandLine.EndsWith($" {switchName}", StringComparison.OrdinalIgnoreCase)
+               || commandLine.StartsWith($"{switchName} ", StringComparison.OrdinalIgnoreCase)
+               || commandLine.IndexOf(switchName, StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static bool TryDetectMainWindow(int processId)
+    {
+        try
+        {
+            using var process = Process.GetProcessById(processId);
+            return process.MainWindowHandle != IntPtr.Zero;
+        }
+        catch
+        {
+            return false;
         }
     }
 }

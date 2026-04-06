@@ -24,11 +24,12 @@ public static class SceneCommand
         string project,
         string path,
         string mode = "single",
+        string? dirtyPolicy = null,
         bool force = false,
         bool saveCurrentModified = false,
         bool json = false)
     {
-        var request = CreateOpenRequest(path, mode, force, saveCurrentModified);
+        var request = CreateOpenRequest(path, mode, dirtyPolicy, force, saveCurrentModified);
         CommandRunner.Execute(project, request, json);
     }
 
@@ -37,11 +38,12 @@ public static class SceneCommand
         string path,
         string template = "default",
         string mode = "single",
+        string? dirtyPolicy = null,
         bool force = false,
         bool saveCurrentModified = false,
         bool json = false)
     {
-        var request = CreateCreateRequest(path, template, mode, force, saveCurrentModified);
+        var request = CreateCreateRequest(path, template, mode, dirtyPolicy, force, saveCurrentModified);
         CommandRunner.Execute(project, request, json);
     }
 
@@ -61,6 +63,7 @@ public static class SceneCommand
     internal static CommandRequest CreateOpenRequest(
         string path,
         string mode = "single",
+        string? dirtyPolicy = null,
         bool force = false,
         bool saveCurrentModified = false)
     {
@@ -74,6 +77,10 @@ public static class SceneCommand
 
         if (!string.IsNullOrWhiteSpace(mode))
             parameters["mode"] = mode;
+
+        var resolvedDirtyPolicy = ResolveDirtyPolicy(dirtyPolicy, force, saveCurrentModified);
+        if (!string.IsNullOrWhiteSpace(resolvedDirtyPolicy))
+            parameters["dirtyPolicy"] = resolvedDirtyPolicy;
 
         if (force)
             parameters["force"] = true;
@@ -92,6 +99,7 @@ public static class SceneCommand
         string path,
         string template = "default",
         string mode = "single",
+        string? dirtyPolicy = null,
         bool force = false,
         bool saveCurrentModified = false)
     {
@@ -109,6 +117,10 @@ public static class SceneCommand
         if (!string.IsNullOrWhiteSpace(mode))
             parameters["mode"] = mode;
 
+        var resolvedDirtyPolicy = ResolveDirtyPolicy(dirtyPolicy, force, saveCurrentModified);
+        if (!string.IsNullOrWhiteSpace(resolvedDirtyPolicy))
+            parameters["dirtyPolicy"] = resolvedDirtyPolicy;
+
         if (force)
             parameters["force"] = true;
 
@@ -120,6 +132,17 @@ public static class SceneCommand
             Command = WellKnownCommands.SceneCreate,
             Parameters = parameters
         };
+    }
+
+    internal static string ResolveDirtyPolicy(string? dirtyPolicy, bool force, bool saveCurrentModified)
+    {
+        if (!string.IsNullOrWhiteSpace(dirtyPolicy))
+            return dirtyPolicy.Trim().ToLowerInvariant();
+        if (saveCurrentModified)
+            return "save";
+        if (force)
+            return "discard";
+        return "fail";
     }
 
     public static void Snapshot(string project, string? scenePath = null, bool includeInactive = false, bool json = false)

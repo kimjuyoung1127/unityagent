@@ -18,7 +18,8 @@ public sealed class EditorTargetResolver
     {
         var fullProjectPath = Path.GetFullPath(projectPath);
         var editor = _discovery.FindEditorForProject(fullProjectPath);
-        var process = _processDetector.FindProcessForProject(fullProjectPath);
+        var process = _processDetector.FindInteractiveProcessForProject(fullProjectPath)
+                      ?? _processDetector.FindProcessForProject(fullProjectPath);
 
         return new EditorTargetInfo
         {

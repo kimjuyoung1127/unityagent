@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using Newtonsoft.Json.Linq;
+using Unityctl.Plugin.Editor.Shared;
 
 namespace Unityctl.Plugin.Editor.Commands
 {
@@ -21,23 +22,28 @@ namespace Unityctl.Plugin.Editor.Commands
             "System.Runtime.InteropServices.Marshal"
         };
 
-        public static object? EvaluateExpression(string expr)
+        public static object EvaluateExpression(string expr)
         {
-            var eqIdx = expr.IndexOf('=');
-            if (eqIdx > 0 && !expr.Contains("=="))
+            ExecExpression parsed;
+            try
             {
-                var lhs = expr.Substring(0, eqIdx).Trim();
-                var rhs = expr.Substring(eqIdx + 1).Trim();
-                return SetMember(lhs, rhs);
+                parsed = ExecExpressionParser.Parse(expr);
+            }
+            catch (ExecExpressionParseException ex)
+            {
+                throw new ExecParseException(ex.Message);
             }
 
-            if (expr.Contains('('))
-                return InvokeExpression(expr);
-
-            return GetMember(expr);
+            return parsed.Kind switch
+            {
+                ExecExpressionKind.GetMember => GetMember(parsed.TypeName, parsed.MemberName),
+                ExecExpressionKind.SetMember => SetMember(parsed.TypeName, parsed.MemberName, parsed.RightHandSide),
+                ExecExpressionKind.InvokeMethod => InvokeMethod(parsed.TypeName, parsed.MemberName, parsed.Arguments),
+                _ => throw new ExecParseException("Unsupported exec expression.")
+            };
         }
 
-        public static JArray ListCallables(string? filter, int limit)
+        public static JArray ListCallables(string filter, int limit)
         {
             var normalizedFilter = string.IsNullOrWhiteSpace(filter)
                 ? null
@@ -82,7 +88,73 @@ namespace Unityctl.Plugin.Editor.Commands
             return results;
         }
 
-        public static object? InvokeStructured(string typeName, string methodName, string? argsJson)
+        public static object InvokeStructured(string typeName, string methodName, string argsJson)
+        {
+            var rawArgs = ParseArguments(argsJson);
+            return InvokeMethod(typeName, methodName, rawArgs.Select(token => token.ToString(Newtonsoft.Json.Formatting.None)).ToArray());
+        }
+
+        private static object GetMember(string typeName, string memberName)
+        {
+            var type = ResolveType(typeName)
+                ?? throw new ExecParseException($"Type not found: '{typeName}'. Ensure the type is loaded in the current AppDomain.");
+            try
+            {
+                var prop = type.GetProperty(memberName, BindingFlags.Public | BindingFlags.Static);
+                if (prop != null)
+                    return prop.GetValue(null);
+
+                var field = type.GetField(memberName, BindingFlags.Public | BindingFlags.Static);
+                if (field != null)
+                    return field.GetValue(null);
+            }
+            catch (TargetInvocationException tie)
+            {
+                throw ExecInvocationException.Create(type.FullName, memberName, tie);
+            }
+
+            throw new ExecParseException($"No public static property or field '{memberName}' on {type.FullName}.");
+        }
+
+        private static object SetMember(string typeName, string memberName, string rhs)
+        {
+            var type = ResolveType(typeName)
+                ?? throw new ExecParseException($"Type not found: '{typeName}'. Ensure the type is loaded in the current AppDomain.");
+
+            var prop = type.GetProperty(memberName, BindingFlags.Public | BindingFlags.Static);
+            if (prop != null)
+            {
+                var value = ConvertArgumentString(rhs, prop.PropertyType);
+                try
+                {
+                    prop.SetValue(null, value);
+                    return value;
+                }
+                catch (TargetInvocationException tie)
+                {
+                    throw ExecInvocationException.Create(type.FullName, memberName, tie);
+                }
+            }
+
+            var field = type.GetField(memberName, BindingFlags.Public | BindingFlags.Static);
+            if (field != null)
+            {
+                var value = ConvertArgumentString(rhs, field.FieldType);
+                try
+                {
+                    field.SetValue(null, value);
+                    return value;
+                }
+                catch (TargetInvocationException tie)
+                {
+                    throw ExecInvocationException.Create(type.FullName, memberName, tie);
+                }
+            }
+
+            throw new ExecParseException($"No settable public static property or field '{memberName}' on {type.FullName}.");
+        }
+
+        private static object InvokeMethod(string typeName, string methodName, IReadOnlyList<string> rawArguments)
         {
             var type = ResolveType(typeName)
                 ?? throw new ExecParseException($"Type not found: '{typeName}'. Ensure the type is loaded in the current AppDomain.");
@@ -90,106 +162,33 @@ namespace Unityctl.Plugin.Editor.Commands
             var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Static)
                 .Where(method => string.Equals(method.Name, methodName, StringComparison.Ordinal))
                 .ToArray();
-
             if (methods.Length == 0)
                 throw new ExecParseException($"No public static method '{methodName}' on {type.FullName}.");
 
-            var rawArgs = ParseArguments(argsJson);
-            var match = methods.FirstOrDefault(method => method.GetParameters().Length == rawArgs.Length)
+            var match = methods.FirstOrDefault(method => method.GetParameters().Length == rawArguments.Count)
                 ?? methods[0];
-
             var parameters = match.GetParameters();
-            if (parameters.Length != rawArgs.Length)
+            if (parameters.Length != rawArguments.Count)
             {
                 throw new ExecParseException(
-                    $"Method '{methodName}' on {type.FullName} expects {parameters.Length} argument(s), but received {rawArgs.Length}.");
+                    $"Method '{methodName}' on {type.FullName} expects {parameters.Length} argument(s), but received {rawArguments.Count}.");
             }
 
-            var convertedArgs = new object?[rawArgs.Length];
-            for (var i = 0; i < rawArgs.Length; i++)
-                convertedArgs[i] = ConvertToken(rawArgs[i], parameters[i].ParameterType);
+            var convertedArgs = new object[rawArguments.Count];
+            for (var i = 0; i < rawArguments.Count; i++)
+                convertedArgs[i] = ConvertArgumentString(rawArguments[i], parameters[i].ParameterType);
 
-            return match.Invoke(null, convertedArgs);
-        }
-
-        private static object? GetMember(string expr)
-        {
-            var (type, memberName) = ResolveTypeMember(expr);
-            var prop = type.GetProperty(memberName, BindingFlags.Public | BindingFlags.Static);
-            if (prop != null) return prop.GetValue(null);
-
-            var field = type.GetField(memberName, BindingFlags.Public | BindingFlags.Static);
-            if (field != null) return field.GetValue(null);
-
-            throw new ExecParseException($"No public static property or field '{memberName}' on {type.FullName}.");
-        }
-
-        private static object? SetMember(string lhs, string rhs)
-        {
-            var (type, memberName) = ResolveTypeMember(lhs);
-            var prop = type.GetProperty(memberName, BindingFlags.Public | BindingFlags.Static);
-            if (prop != null)
+            try
             {
-                var value = ConvertStringValue(rhs, prop.PropertyType);
-                prop.SetValue(null, value);
-                return value;
+                return match.Invoke(null, convertedArgs);
             }
-
-            var field = type.GetField(memberName, BindingFlags.Public | BindingFlags.Static);
-            if (field != null)
+            catch (TargetInvocationException tie)
             {
-                var value = ConvertStringValue(rhs, field.FieldType);
-                field.SetValue(null, value);
-                return value;
+                throw ExecInvocationException.Create(type.FullName, methodName, tie);
             }
-
-            throw new ExecParseException($"No settable public static property or field '{memberName}' on {type.FullName}.");
         }
 
-        private static object? InvokeExpression(string expr)
-        {
-            var parenIdx = expr.IndexOf('(');
-            var methodPath = expr.Substring(0, parenIdx).Trim();
-            var argsStr = expr.Substring(parenIdx + 1).TrimEnd(')').Trim();
-
-            var (type, methodName) = ResolveTypeMember(methodPath);
-            var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Static)
-                .Where(m => m.Name == methodName)
-                .ToArray();
-
-            if (methods.Length == 0)
-                throw new ExecParseException($"No public static method '{methodName}' on {type.FullName}.");
-
-            var args = string.IsNullOrWhiteSpace(argsStr)
-                ? Array.Empty<string>()
-                : argsStr.Split(',').Select(a => a.Trim()).ToArray();
-
-            var method = methods.FirstOrDefault(m => m.GetParameters().Length == args.Length)
-                ?? methods[0];
-            var parameters = method.GetParameters();
-            var convertedArgs = new object?[Math.Min(args.Length, parameters.Length)];
-
-            for (var i = 0; i < convertedArgs.Length; i++)
-                convertedArgs[i] = ConvertStringValue(args[i], parameters[i].ParameterType);
-
-            return method.Invoke(null, convertedArgs);
-        }
-
-        private static (Type type, string memberName) ResolveTypeMember(string expr)
-        {
-            var lastDot = expr.LastIndexOf('.');
-            if (lastDot < 0)
-                throw new ExecParseException($"Expression must be 'TypeName.MemberName', got: {expr}");
-
-            var typePart = expr.Substring(0, lastDot).Trim();
-            var memberName = expr.Substring(lastDot + 1).Trim();
-            var type = ResolveType(typePart)
-                ?? throw new ExecParseException($"Type not found: '{typePart}'. Ensure the type is loaded in the current AppDomain.");
-
-            return (type, memberName);
-        }
-
-        internal static Type? ResolveType(string typeName)
+        internal static Type ResolveType(string typeName)
         {
             foreach (var blocked in BlockedTypePatterns)
             {
@@ -200,28 +199,17 @@ namespace Unityctl.Plugin.Editor.Commands
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
             foreach (var asm in assemblies)
             {
-                var exact = asm.GetType(typeName, throwOnError: false, ignoreCase: false);
+                var exact = asm.GetType(typeName, false, false);
                 if (exact != null)
                     return exact;
             }
 
             var shortMatches = assemblies
                 .Where(assembly => !assembly.IsDynamic)
-                .SelectMany(assembly =>
-                {
-                    try
-                    {
-                        return assembly.GetTypes();
-                    }
-                    catch (ReflectionTypeLoadException ex)
-                    {
-                        return ex.Types.Where(type => type != null);
-                    }
-                })
+                .SelectMany(SafeGetTypes)
                 .Where(type => type != null
                                && string.Equals(type.Name, typeName, StringComparison.Ordinal)
                                && IsCallableType(type))
-                .Cast<Type>()
                 .Distinct()
                 .ToArray();
 
@@ -236,23 +224,25 @@ namespace Unityctl.Plugin.Editor.Commands
 
             foreach (var assembly in assemblies)
             {
-                IEnumerable<Type> types;
-                try
-                {
-                    types = assembly.GetTypes();
-                }
-                catch (ReflectionTypeLoadException ex)
-                {
-                    types = ex.Types.Where(type => type != null);
-                }
-
-                foreach (var type in types)
+                foreach (var type in SafeGetTypes(assembly))
                 {
                     if (type == null || !IsCallableType(type))
                         continue;
 
                     yield return type;
                 }
+            }
+        }
+
+        private static IEnumerable<Type> SafeGetTypes(Assembly assembly)
+        {
+            try
+            {
+                return assembly.GetTypes();
+            }
+            catch (ReflectionTypeLoadException ex)
+            {
+                return ex.Types.Where(type => type != null);
             }
         }
 
@@ -265,7 +255,7 @@ namespace Unityctl.Plugin.Editor.Commands
                        || type.GetProperties(BindingFlags.Public | BindingFlags.Static).Length > 0);
         }
 
-        private static bool MatchesFilter(Type type, string? filter)
+        private static bool MatchesFilter(Type type, string filter)
         {
             if (string.IsNullOrWhiteSpace(filter))
                 return true;
@@ -275,7 +265,7 @@ namespace Unityctl.Plugin.Editor.Commands
                    || type.Assembly.GetName().Name.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
-        private static JToken[] ParseArguments(string? argsJson)
+        private static JToken[] ParseArguments(string argsJson)
         {
             if (string.IsNullOrWhiteSpace(argsJson))
                 return Array.Empty<JToken>();
@@ -287,13 +277,47 @@ namespace Unityctl.Plugin.Editor.Commands
             return array.ToArray();
         }
 
-        private static object? ConvertToken(JToken token, Type targetType)
+        private static object ConvertArgumentString(string raw, Type targetType)
+        {
+            var token = ParseToken(raw);
+            return ConvertToken(token, targetType);
+        }
+
+        private static JToken ParseToken(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+                return JValue.CreateString(string.Empty);
+
+            var trimmed = raw.Trim();
+            if (trimmed[0] == '\'' && trimmed[trimmed.Length - 1] == '\'')
+                return new JValue(trimmed.Substring(1, trimmed.Length - 2));
+
+            if (trimmed[0] == '"' || trimmed[0] == '[' || trimmed[0] == '{'
+                || string.Equals(trimmed, "true", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(trimmed, "false", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(trimmed, "null", StringComparison.OrdinalIgnoreCase)
+                || char.IsDigit(trimmed[0]) || trimmed[0] == '-')
+            {
+                try
+                {
+                    return JToken.Parse(trimmed);
+                }
+                catch
+                {
+                    // Fall back to raw string conversion below.
+                }
+            }
+
+            return new JValue(trimmed);
+        }
+
+        private static object ConvertToken(JToken token, Type targetType)
         {
             if (token.Type == JTokenType.Null)
                 return null;
 
             if (targetType == typeof(string))
-                return token.Value<string>();
+                return token.Type == JTokenType.String ? token.Value<string>() : token.ToString(Newtonsoft.Json.Formatting.None);
 
             if (targetType == typeof(bool))
                 return token.Value<bool>();
@@ -307,29 +331,16 @@ namespace Unityctl.Plugin.Editor.Commands
             if (targetType == typeof(double))
                 return token.Value<double>();
 
+            if (targetType == typeof(long))
+                return token.Value<long>();
+
             if (targetType.IsEnum)
-                return Enum.Parse(targetType, token.Value<string>() ?? string.Empty, ignoreCase: true);
+                return Enum.Parse(targetType, token.Value<string>() ?? string.Empty, true);
+
+            if (targetType == typeof(object))
+                return token.ToObject<object>();
 
             return token.ToObject(targetType);
-        }
-
-        private static object? ConvertStringValue(string raw, Type targetType)
-        {
-            if (targetType == typeof(bool))
-            {
-                return bool.TryParse(raw, out var b) ? b
-                    : raw == "1" ? true
-                    : raw == "0" ? (object)false
-                    : throw new ExecParseException($"Cannot convert '{raw}' to bool.");
-            }
-
-            if (targetType == typeof(int)) return int.Parse(raw, CultureInfo.InvariantCulture);
-            if (targetType == typeof(float)) return float.Parse(raw, CultureInfo.InvariantCulture);
-            if (targetType == typeof(double)) return double.Parse(raw, CultureInfo.InvariantCulture);
-            if (targetType == typeof(string)) return raw.Trim('"').Trim('\'');
-            if (targetType.IsEnum) return Enum.Parse(targetType, raw.Trim('"').Trim('\''), ignoreCase: true);
-
-            return Convert.ChangeType(raw, targetType, CultureInfo.InvariantCulture);
         }
     }
 
@@ -341,6 +352,28 @@ namespace Unityctl.Plugin.Editor.Commands
     internal sealed class ExecParseException : Exception
     {
         public ExecParseException(string message) : base(message) { }
+    }
+
+    internal sealed class ExecInvocationException : Exception
+    {
+        private ExecInvocationException(string typeName, string memberName, Exception inner)
+            : base(inner.Message, inner)
+        {
+            TypeName = typeName;
+            MemberName = memberName;
+            InnerTypeName = inner.GetType().FullName ?? inner.GetType().Name;
+            InnerStackTrace = inner.StackTrace;
+        }
+
+        public string TypeName { get; }
+        public string MemberName { get; }
+        public string InnerTypeName { get; }
+        public string InnerStackTrace { get; }
+
+        public static ExecInvocationException Create(string typeName, string memberName, TargetInvocationException tie)
+        {
+            return new ExecInvocationException(typeName, memberName, tie.InnerException ?? tie);
+        }
     }
 }
 #endif

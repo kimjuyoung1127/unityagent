@@ -25,7 +25,7 @@ public sealed class HeadlessBatchValidationTests
             var data = JsonResponseExtensions.RequireDataElement(response, "projectPath");
             Assert.Equal(JsonValueKind.String, data.ValueKind);
             var normalizedPath = (data.GetString() ?? string.Empty).Replace('/', Path.DirectorySeparatorChar);
-            Assert.EndsWith(Path.Combine("SampleUnityProject", "Assets"), normalizedPath);
+            Assert.EndsWith(Path.Combine(Path.GetFileName(TestEnvironment.SampleUnityProjectRoot), "Assets"), normalizedPath);
 
             var payload = JsonResponseExtensions.RequireFullData(response);
             Assert.False(string.IsNullOrWhiteSpace(payload.GetProperty("unityVersion").GetString()));

@@ -215,20 +215,22 @@ app.Add("scene open", (
         string project,
         string path,
         string mode = "single",
+        string? dirtyPolicy = null,
         bool force = false,
         bool saveCurrentModified = false,
         bool json = false) =>
-    SceneCommand.Open(project, path, mode, force, saveCurrentModified, json));
+    SceneCommand.Open(project, path, mode, dirtyPolicy, force, saveCurrentModified, json));
 
 app.Add("scene create", (
         string project,
         string path,
         string template = "default",
         string mode = "single",
+        string? dirtyPolicy = null,
         bool force = false,
         bool saveCurrentModified = false,
         bool json = false) =>
-    SceneCommand.Create(project, path, template, mode, force, saveCurrentModified, json));
+    SceneCommand.Create(project, path, template, mode, dirtyPolicy, force, saveCurrentModified, json));
 
 app.Add("component add", (string project, string type, string? id = null, string? name = null, bool json = false) =>
     ComponentCommand.Add(project, type, id, name, json));
@@ -515,11 +517,11 @@ app.Add("shader get-properties", (string project, string name, bool json = false
 app.Add("uitk find", (string project, string? name = null, string? className = null, string? type = null, int? limit = null, bool json = false) =>
     UitkCommand.Find(project, name, className, type, limit, json));
 
-app.Add("uitk get", (string project, string name, bool json = false) =>
-    UitkCommand.Get(project, name, json));
+app.Add("uitk get", (string project, string? name = null, string? locator = null, bool json = false) =>
+    UitkCommand.Get(project, name, locator, json));
 
-app.Add("uitk set-value", (string project, string name, string value, bool json = false) =>
-    UitkCommand.SetValue(project, name, value, json));
+app.Add("uitk set-value", (string project, string value, string? name = null, string? locator = null, bool json = false) =>
+    UitkCommand.SetValue(project, value, name, locator, json));
 
 // Cinemachine — Phase E
 app.Add("cinemachine list", (string project, bool includeInactive = false, bool json = false) =>

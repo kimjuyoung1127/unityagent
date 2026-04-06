@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using Newtonsoft.Json.Linq;
+using UnityEditor;
 using Unityctl.Plugin.Editor.Shared;
 
 namespace Unityctl.Plugin.Editor.Commands
@@ -21,7 +22,9 @@ namespace Unityctl.Plugin.Editor.Commands
                 ["filter"] = filter,
                 ["limit"] = limit,
                 ["results"] = results,
-                ["count"] = results.Count
+                ["count"] = results.Count,
+                ["compiledAt"] = ScriptCompilationCollector.GetLatestResult()?["compiledAt"]?.Value<string>(),
+                ["domainStable"] = !EditorApplication.isCompiling && !EditorApplication.isUpdating
             });
         }
     }

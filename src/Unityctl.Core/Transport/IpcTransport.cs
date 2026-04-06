@@ -2,6 +2,8 @@ using System.IO.Pipes;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Unityctl.Core.Discovery;
+using Unityctl.Core.Platform;
 using Unityctl.Shared;
 using Unityctl.Shared.Protocol;
 using Unityctl.Shared.Serialization;
@@ -16,15 +18,21 @@ namespace Unityctl.Core.Transport;
 public sealed class IpcTransport : ITransport
 {
     private readonly string _pipeName;
+    private readonly string? _projectPath;
+    private readonly IPlatformServices? _platform;
+    private readonly UnityProcessDetector? _processDetector;
 
     public string Name => "ipc";
     public TransportCapability Capabilities =>
         TransportCapability.Command | TransportCapability.Streaming |
         TransportCapability.Bidirectional | TransportCapability.LowLatency;
 
-    public IpcTransport(string projectPath)
+    public IpcTransport(string projectPath, IPlatformServices? platform = null, UnityProcessDetector? processDetector = null)
     {
         _pipeName = Constants.GetPipeName(projectPath);
+        _projectPath = Path.GetFullPath(projectPath);
+        _platform = platform;
+        _processDetector = processDetector;
     }
 
     /// <summary>Internal constructor for tests — uses raw pipe name instead of hashing projectPath.</summary>
@@ -53,7 +61,7 @@ public sealed class IpcTransport : ITransport
         {
             // Message timeout (not user cancellation)
             return CommandResponse.Fail(StatusCode.Busy,
-                "IPC message timed out (30s). Unity Editor may be frozen or in domain reload. Try again.");
+                BuildTimeoutMessage());
         }
         catch (OperationCanceledException)
         {
@@ -175,4 +183,25 @@ public sealed class IpcTransport : ITransport
     }
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+
+    private string BuildTimeoutMessage()
+    {
+        if (_projectPath == null || _platform == null)
+            return "IPC message timed out (30s). Unity Editor may be frozen or in domain reload. Try again.";
+
+        var detector = _processDetector ?? new UnityProcessDetector(_platform);
+        var interactiveProcess = detector.FindInteractiveProcessForProject(_projectPath);
+        if (interactiveProcess != null)
+        {
+            return $"IPC message timed out (30s) while interactive Unity Editor pid {interactiveProcess.ProcessId} was still alive. Unity may be frozen or mid reload.";
+        }
+
+        var process = detector.FindProcessForProject(_projectPath);
+        if (process != null)
+        {
+            return $"IPC message timed out (30s) while a headless Unity process pid {process.ProcessId} was holding the project. IPC will not become ready until that process exits.";
+        }
+
+        return "IPC message timed out (30s). Unity Editor may be frozen or in domain reload. Try again.";
+    }
 }

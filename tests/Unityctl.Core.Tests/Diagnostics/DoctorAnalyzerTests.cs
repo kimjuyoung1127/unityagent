@@ -30,6 +30,19 @@ public sealed class DoctorAnalyzerTests
     }
 
     [Fact]
+    public void Analyze_HeadlessProcessesWithoutInteractiveEditor_ClassifiesHeadlessBlocking()
+    {
+        var snapshot = CreateSnapshot(ipcConnected: false, projectLocked: true);
+        snapshot.HeadlessProcessCount = 1;
+        snapshot.RunningProcessCount = 1;
+
+        var analysis = DoctorAnalyzer.Analyze(snapshot, @"C:\Users\gmdqn\robotapp", [], []);
+
+        Assert.Equal("headless-process-blocking", analysis.Classification);
+        Assert.Contains("headless", string.Join(Environment.NewLine, analysis.Recommendations), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Analyze_ScriptGetErrorsBusyFailure_AddsValidateRecommendation()
     {
         var snapshot = CreateSnapshot(ipcConnected: false, projectLocked: true);

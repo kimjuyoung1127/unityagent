@@ -1,4 +1,5 @@
 using Unityctl.Cli.Execution;
+using Unityctl.Core.Discovery;
 using Unityctl.Core.Platform;
 using Unityctl.Core.Transport;
 using Unityctl.Shared.Protocol;
@@ -35,10 +36,13 @@ public static class StatusCommand
         bool json,
         Func<string, bool>? isProjectLocked = null,
         Func<string, CancellationToken, Task<bool>>? probeIpcAsync = null,
+        Func<string, bool>? isInteractiveEditorRunning = null,
         CancellationToken ct = default)
     {
-        var lockCheck = isProjectLocked ?? (path => PlatformFactory.Create().IsProjectLocked(path));
+        var platform = PlatformFactory.Create();
+        var lockCheck = isProjectLocked ?? (path => platform.IsProjectLocked(path));
         var probe = probeIpcAsync ?? DefaultProbeIpcAsync;
+        var interactiveCheck = isInteractiveEditorRunning ?? (path => new UnityProcessDetector(platform).IsInteractiveEditorRunning(path));
 
         // Phase 1: wait for IPC to become ready (handles domain reloads)
         for (var attempt = 0; attempt < DomainReloadMaxAttempts; attempt++)
@@ -46,6 +50,12 @@ public static class StatusCommand
             if (await probe(project, ct).ConfigureAwait(false))
             {
                 // IPC ready — execute status normally
+                var request = new CommandRequest { Command = WellKnownCommands.Status };
+                return await CommandRunner.ExecuteAsync(project, request, json, retry: false);
+            }
+
+            if (!interactiveCheck(project))
+            {
                 var request = new CommandRequest { Command = WellKnownCommands.Status };
                 return await CommandRunner.ExecuteAsync(project, request, json, retry: false);
             }

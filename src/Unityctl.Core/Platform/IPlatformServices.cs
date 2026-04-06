@@ -19,4 +19,9 @@ public sealed class UnityProcessInfo
     public string? ProjectPath { get; set; }
     public string? Version { get; set; }
     public string? ExecutablePath { get; set; }
+    public bool IsBatchMode { get; set; }
+    public bool HasMainWindow { get; set; }
+    public string? CommandLineSource { get; set; }
+
+    public bool IsInteractiveEditor => !IsBatchMode && HasMainWindow;
 }

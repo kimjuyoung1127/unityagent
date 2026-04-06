@@ -112,9 +112,14 @@ unityctl ping --json
 
 # Get editor state
 unityctl status --project /path/to/project --json
+
+# Wait specifically for an interactive Editor + IPC-stable state
+unityctl await-ready --project /path/to/project --timeout 300 --json
 ```
 
 For onboarding, prefer verifying with a running Editor. In batch fallback these commands can take tens of seconds or fail on a specific project, so they are not a guaranteed sub-minute first-success path yet.
+
+`await-ready` is strict about interactive Editor state. If only batch/headless Unity processes are running, it returns a diagnostic instead of waiting for IPC that will never come up.
 
 ### 3. Check compilation
 
@@ -193,7 +198,13 @@ unityctl mesh create-primitive --project /path/to/project --type Cube --name "Fl
 
 # Save the scene
 unityctl scene save --project /path/to/project --json
+
+# Open a scene and choose how dirty scenes are handled
+unityctl scene open --project /path/to/project --path "Assets/Scenes/Main.unity" --dirty-policy save --json
 ```
+
+For `scene open` and `scene create`, `--dirty-policy fail|save|discard` is the preferred interface now.
+Legacy `--force` and `--save-current-modified` still work and map to `discard` and `save`.
 
 ### Assets
 
@@ -376,12 +387,20 @@ unityctl cinemachine set-property --project /path/to/project --id "<GlobalObject
 # Find UI Toolkit elements
 unityctl uitk find --project /path/to/project --type Button --json
 
-# Get element details
+# Get element details by name
 unityctl uitk get --project /path/to/project --name "myButton" --json
 
-# Set element value
+# Or use the stable locator returned by `uitk find`
+unityctl uitk get --project /path/to/project --locator "MainHud::root/0:Button#Play" --json
+
+# Set element value by name
 unityctl uitk set-value --project /path/to/project --name "myTextField" --value "hello" --json
+
+# Or set by locator
+unityctl uitk set-value --project /path/to/project --locator "MainHud::root/1:TextField#Name" --value "hello" --json
 ```
+
+`uitk find`, `uitk get`, and `uitk set-value` now share the same resolver. Prefer the returned `locator` when multiple elements share the same `name`.
 
 ### Script Management
 
@@ -397,6 +416,34 @@ unityctl script validate --project /path/to/project --json
 ```
 
 For `script get-errors`, `script find-refs`, and `script rename-symbol`, prefer a running Editor with IPC ready. If `script get-errors` still has no compile data after Unity reports Ready, run `unityctl script validate --project <path> --wait` once and retry.
+
+### Exec / Reflection
+
+```bash
+# Static member get
+unityctl exec --project /path/to/project --code "UnityEditor.EditorApplication.isPlaying" --json
+
+# Static member set
+unityctl exec --project /path/to/project --code "UnityEditor.EditorApplication.isPlaying = false" --json
+
+# Static method call
+unityctl exec --project /path/to/project --code "System.String.IsNullOrEmpty(\"hello, world\")" --json
+
+# Structured invoke for more explicit calls
+unityctl exec invoke --project /path/to/project --type "System.String" --method "IsNullOrEmpty" --args "[\"hello, world\"]" --json
+
+# Inspect callable static surfaces
+unityctl exec list-callables --project /path/to/project --filter "EditorApplication" --json
+```
+
+`exec --code` is intentionally a small reflection DSL, not arbitrary C# execution.
+Supported forms are:
+
+- `Type.Member`
+- `Type.Member = value`
+- `Type.Method(arg1, arg2)`
+
+Parse errors now report the failing character position, and invocation failures surface the inner exception type and stack trace when available.
 
 ### Play Mode Control
 

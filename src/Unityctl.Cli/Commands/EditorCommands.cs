@@ -338,6 +338,7 @@ public static class EditorCommands
             .Border(TableBorder.Rounded)
             .AddColumn("PID")
             .AddColumn("Version")
+            .AddColumn("Kind")
             .AddColumn("IPC")
             .AddColumn("Project")
             .AddColumn("Location");
@@ -347,6 +348,7 @@ public static class EditorCommands
             table.AddRow(
                 new Text(instance.ProcessId.ToString()),
                 new Text(instance.Version ?? "unknown"),
+                new Text(instance.ProcessKind ?? "unknown"),
                 new Text(instance.IpcReady ? "ready" : "down"),
                 new Text(instance.ProjectPath ?? "unknown"),
                 new Text(instance.EditorLocation ?? "unknown"));

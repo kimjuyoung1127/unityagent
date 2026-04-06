@@ -190,7 +190,10 @@ public sealed class UnityEditorDiscovery
                 Version = process.Version ?? matchingEditor?.Version,
                 EditorLocation = matchingEditor?.Location,
                 PipeName = pipeName,
-                IpcReady = ipcReady
+                IpcReady = ipcReady,
+                IsBatchMode = process.IsBatchMode,
+                HasMainWindow = process.HasMainWindow,
+                ProcessKind = process.IsInteractiveEditor ? "interactive" : process.IsBatchMode ? "headless" : "background"
             });
         }
 

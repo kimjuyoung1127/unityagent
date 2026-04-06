@@ -25,6 +25,11 @@ public sealed class UnityProcessDetector
             .Any(p => MatchesProjectPath(p.ProjectPath, normalized));
     }
 
+    public bool IsInteractiveEditorRunning(string projectPath)
+    {
+        return FindInteractiveProcessForProject(projectPath) != null;
+    }
+
     /// <summary>
     /// Find the Unity process for a specific project.
     /// </summary>
@@ -33,6 +38,13 @@ public sealed class UnityProcessDetector
         var normalized = Unityctl.Shared.Constants.NormalizeProjectPath(projectPath);
         return _platform.FindRunningUnityProcesses()
             .FirstOrDefault(p => MatchesProjectPath(p.ProjectPath, normalized));
+    }
+
+    public UnityProcessInfo? FindInteractiveProcessForProject(string projectPath)
+    {
+        var normalized = Unityctl.Shared.Constants.NormalizeProjectPath(projectPath);
+        return _platform.FindRunningUnityProcesses()
+            .FirstOrDefault(p => MatchesProjectPath(p.ProjectPath, normalized) && p.IsInteractiveEditor);
     }
 
     public UnityProcessInfo? FindProcessById(int processId)
@@ -46,6 +58,15 @@ public sealed class UnityProcessDetector
         var normalized = Unityctl.Shared.Constants.NormalizeProjectPath(projectPath);
         return _platform.FindRunningUnityProcesses()
             .Where(p => MatchesProjectPath(p.ProjectPath, normalized))
+            .OrderBy(p => p.ProcessId)
+            .ToList();
+    }
+
+    public IReadOnlyList<UnityProcessInfo> FindInteractiveProcessesForProject(string projectPath)
+    {
+        var normalized = Unityctl.Shared.Constants.NormalizeProjectPath(projectPath);
+        return _platform.FindRunningUnityProcesses()
+            .Where(p => MatchesProjectPath(p.ProjectPath, normalized) && p.IsInteractiveEditor)
             .OrderBy(p => p.ProcessId)
             .ToList();
     }

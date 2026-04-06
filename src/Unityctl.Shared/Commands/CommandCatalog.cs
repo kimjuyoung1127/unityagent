@@ -452,6 +452,7 @@ public static class CommandCatalog
         Parameter("project", "string", "Path to Unity project", required: true),
         Parameter("path", "string", "Scene asset path to open", required: true),
         Parameter("mode", "string", "Open mode: single or additive (default: single)", required: false),
+        Parameter("dirtyPolicy", "string", "Dirty scene policy: fail, save, discard (default: fail)", required: false),
         Parameter("force", "bool", "Discard dirty scene changes when opening in single mode", required: false),
         Parameter("saveCurrentModified", "bool", "Save dirty scenes before opening in single mode", required: false),
         Parameter("json", "bool", "Output as JSON", required: false)).WithCli("scene open");
@@ -464,6 +465,7 @@ public static class CommandCatalog
         Parameter("path", "string", "Scene asset path to create", required: true),
         Parameter("template", "string", "Scene template: default or empty (default: default)", required: false),
         Parameter("mode", "string", "Create mode: single or additive (default: single)", required: false),
+        Parameter("dirtyPolicy", "string", "Dirty scene policy: fail, save, discard (default: fail)", required: false),
         Parameter("force", "bool", "Discard dirty scene changes when creating in single mode", required: false),
         Parameter("saveCurrentModified", "bool", "Save dirty scenes before creating in single mode", required: false),
         Parameter("json", "bool", "Output as JSON", required: false)).WithCli("scene create");
@@ -1275,10 +1277,11 @@ public static class CommandCatalog
 
     public static readonly CommandDefinition UitkGetCmd = Define(
         WellKnownCommands.UitkGet,
-        "Get detailed properties of a UI Toolkit element by name",
+        "Get detailed properties of a UI Toolkit element by name or locator",
         "query",
         Parameter("project", "string", "Path to Unity project", required: true),
-        Parameter("name", "string", "Element name", required: true),
+        Parameter("name", "string", "Element name", required: false),
+        Parameter("locator", "string", "Stable locator returned by uitk find", required: false),
         Parameter("json", "bool", "Output as JSON", required: false)).WithCli("uitk get");
 
     public static readonly CommandDefinition UitkSetValueCmd = Define(
@@ -1286,7 +1289,8 @@ public static class CommandCatalog
         "Set value on a UI Toolkit element (TextField, Toggle, Slider, etc.)",
         "action",
         Parameter("project", "string", "Path to Unity project", required: true),
-        Parameter("name", "string", "Element name", required: true),
+        Parameter("name", "string", "Element name", required: false),
+        Parameter("locator", "string", "Stable locator returned by uitk find", required: false),
         Parameter("value", "string", "New value", required: true),
         Parameter("json", "bool", "Output as JSON", required: false)).WithCli("uitk set-value");
 

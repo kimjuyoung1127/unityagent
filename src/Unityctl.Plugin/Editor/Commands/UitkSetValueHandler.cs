@@ -1,8 +1,6 @@
 #if UNITY_EDITOR
 using System;
-using System.Reflection;
 using Newtonsoft.Json.Linq;
-using UnityEngine;
 using Unityctl.Plugin.Editor.Shared;
 
 namespace Unityctl.Plugin.Editor.Commands
@@ -13,81 +11,78 @@ namespace Unityctl.Plugin.Editor.Commands
 
         protected override CommandResponse ExecuteInEditor(CommandRequest request)
         {
-            var uiDocType = FindType("UnityEngine.UIElements.UIDocument");
-            if (uiDocType == null)
+            if (UitkElementResolver.FindUidocumentType() == null)
                 return Fail(StatusCode.NotFound, "UI Toolkit (UIDocument) not available in this Unity version.");
 
             var name = request.GetParam("name", null);
+            var locator = request.GetParam("locator", null);
             if (string.IsNullOrEmpty(name))
-                return InvalidParameters("Parameter 'name' is required.");
+            {
+                if (string.IsNullOrWhiteSpace(locator))
+                    return InvalidParameters("Parameter 'name' or 'locator' is required.");
+            }
 
             var valueStr = request.GetParam("value", null);
             if (valueStr == null)
                 return InvalidParameters("Parameter 'value' is required.");
 
-            var docs = UnityEngine.Object.FindObjectsByType(uiDocType,
-                FindObjectsInactive.Include, FindObjectsSortMode.None);
-
-            foreach (var doc in docs)
+            if (!UitkElementResolver.TryResolveSingle(name, locator, out var resolved, out var candidates, out var ambiguous))
             {
-                var rootProp = doc.GetType().GetProperty("rootVisualElement");
-                var root = rootProp?.GetValue(doc);
-                if (root == null) continue;
+                if (ambiguous)
+                {
+                    return Fail(StatusCode.InvalidParameters, "Multiple UI Toolkit elements matched the query. Retry with locator.",
+                        new JObject { ["candidates"] = candidates });
+                }
+                return Fail(StatusCode.NotFound, $"UI Toolkit element not found for name='{name}' locator='{locator}'.");
+            }
 
-                var qMethod = root.GetType().GetMethod("Q",
-                    new[] { typeof(string), typeof(string) });
-                object element = null;
-                if (qMethod != null)
-                    element = qMethod.Invoke(root, new object[] { name, null });
+            var element = resolved.Element;
+            var elType = element.GetType();
+            var valueProp = elType.GetProperty("value");
+            if (valueProp == null || !valueProp.CanWrite)
+            {
+                return Fail(StatusCode.InvalidParameters,
+                    $"Element '{resolved.Name}' ({elType.Name}) does not have a writable value property.");
+            }
 
-                if (element == null) continue;
+            object parsedValue;
+            try
+            {
+                parsedValue = ConvertValue(valueStr, valueProp.PropertyType);
+            }
+            catch (Exception ex)
+            {
+                return InvalidParameters($"Cannot convert '{valueStr}' to {valueProp.PropertyType.Name}: {ex.Message}");
+            }
 
-                var elType = element.GetType();
-                var valueProp = elType.GetProperty("value");
-                if (valueProp == null || !valueProp.CanWrite)
-                    return Fail(StatusCode.InvalidParameters,
-                        $"Element '{name}' ({elType.Name}) does not have a writable value property.");
-
-                object parsedValue;
+            var previousValue = valueProp.GetValue(element)?.ToString() ?? "null";
+            var setWithoutNotify = elType.GetMethod("SetValueWithoutNotify");
+            if (setWithoutNotify != null)
+            {
                 try
                 {
-                    parsedValue = ConvertValue(valueStr, valueProp.PropertyType);
+                    setWithoutNotify.Invoke(element, new[] { parsedValue });
                 }
-                catch (Exception ex)
-                {
-                    return InvalidParameters($"Cannot convert '{valueStr}' to {valueProp.PropertyType.Name}: {ex.Message}");
-                }
-
-                var previousValue = valueProp.GetValue(element)?.ToString() ?? "null";
-
-                // Use SetValueWithoutNotify if available, otherwise direct set
-                var setWithoutNotify = elType.GetMethod("SetValueWithoutNotify");
-                if (setWithoutNotify != null)
-                {
-                    try
-                    {
-                        setWithoutNotify.Invoke(element, new[] { parsedValue });
-                    }
-                    catch
-                    {
-                        valueProp.SetValue(element, parsedValue);
-                    }
-                }
-                else
+                catch
                 {
                     valueProp.SetValue(element, parsedValue);
                 }
-
-                return Ok($"Set '{name}' value to '{valueStr}'", new JObject
-                {
-                    ["name"] = name,
-                    ["type"] = elType.Name,
-                    ["previousValue"] = previousValue,
-                    ["currentValue"] = valueProp.GetValue(element)?.ToString() ?? "null"
-                });
+            }
+            else
+            {
+                valueProp.SetValue(element, parsedValue);
             }
 
-            return Fail(StatusCode.NotFound, $"UI Toolkit element with name '{name}' not found.");
+            return Ok($"Set '{resolved.Name}' value to '{valueStr}'", new JObject
+            {
+                ["name"] = resolved.Name,
+                ["type"] = elType.Name,
+                ["documentName"] = resolved.DocumentName,
+                ["elementPath"] = resolved.ElementPath,
+                ["locator"] = resolved.Locator,
+                ["previousValue"] = previousValue,
+                ["currentValue"] = valueProp.GetValue(element)?.ToString() ?? "null"
+            });
         }
 
         private static object ConvertValue(string str, Type targetType)
@@ -101,15 +96,6 @@ namespace Unityctl.Plugin.Editor.Commands
             return Convert.ChangeType(str, targetType, System.Globalization.CultureInfo.InvariantCulture);
         }
 
-        private static Type FindType(string typeName)
-        {
-            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-            {
-                var type = asm.GetType(typeName);
-                if (type != null) return type;
-            }
-            return null;
-        }
     }
 }
 #endif

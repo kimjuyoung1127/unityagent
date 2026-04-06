@@ -10,15 +10,23 @@ namespace Unityctl.Plugin.Editor.Commands
 
         protected override CommandResponse ExecuteInEditor(CommandRequest request)
         {
-            var success = UnityEditor.EditorApplication.ExecuteMenuItem("Window/General/Game");
+            const string menuPath = "Window/General/Game";
+            var success = UnityEditor.EditorApplication.ExecuteMenuItem(menuPath);
             if (!success)
             {
-                return Fail(StatusCode.UnknownError, "Failed to focus Game View via menu item");
+                return Fail(StatusCode.UnknownError, "Failed to focus Game View via menu item", new JObject
+                {
+                    ["menuPath"] = menuPath,
+                    ["isCompiling"] = UnityEditor.EditorApplication.isCompiling,
+                    ["isUpdating"] = UnityEditor.EditorApplication.isUpdating,
+                    ["recommendedAction"] = "Wait for compilation/domain reload to finish, then retry editor focus-gameview."
+                });
             }
 
             return Ok("Game View focused", new JObject
             {
-                ["focused"] = true
+                ["focused"] = true,
+                ["menuPath"] = menuPath
             });
         }
     }

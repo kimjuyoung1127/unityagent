@@ -1,6 +1,6 @@
 # unityctl 프로젝트 상태
 
-최종 업데이트: 2026-03-20 (KST)
+최종 업데이트: 2026-04-06 (KST)
 기준 문서: `CLAUDE.md`, `docs/ref/phase-roadmap.md`, `docs/internal/DEVELOPMENT.md`
 
 ## 현재 Phase
@@ -53,8 +53,31 @@
 - **Token Optimization (status state 구분, hierarchy summary/maxDepth, component get summary, console-get-entries dedupe)**: 구현 완료
 
 - **CLI Enhancement (profiler rendering stats + component add --name + component enable/disable + profiler --detailed)**: 구현 완료. Unity 6 라이브 테스트 통과. 755 테스트 통과.
+- **Real-World UX Hardening (`await-ready` interactive gating, headless process classification, `exec` parser hardening, UITK locator resolver, scene dirty policy)**: 구현 완료. `My project` 기준 라이브 검증/통합 테스트 통과.
 
 **전체 Phase 완료. 총 84개 write allowlist 명령, 159개 CLI 명령 (+2 component enable/disable), 12개 MCP 도구 (33→12 통합), 4개 MCP 프롬프트.**
+
+## Real-World UX Hardening 라이브 검증 (My project, 2026-04-06)
+
+| 기능 | 상태 | 비고 |
+|------|------|------|
+| `editor instances --json` | ✅ | `interactive` / `headless` / `background` 프로세스 kind 구분 노출 확인 |
+| `await-ready --project "C:\\Users\\ezen601\\Desktop\\Jason\\My project" --timeout 30 --json` | ✅ | interactive Editor 부재 시 `No interactive Unity Editor is running...` 진단으로 빠르게 종료 |
+| `status --project "C:\\Users\\ezen601\\Desktop\\Jason\\My project" --wait --json` | ✅ | 불필요한 IPC 대기 대신 batch `status` 결과 반환 확인 |
+| `check --project "C:\\Users\\ezen601\\Desktop\\Jason\\My project" --type compile --json` | ✅ | batch fallback에서 `Compilation check passed` 응답 확인 |
+| `exec --project "C:\\Users\\ezen601\\Desktop\\Jason\\My project" --code "System.String.IsNullOrEmpty(\\"hello, world\\")" --json` | ✅ | 문자열 안 쉼표 포함 호출 파싱 성공 |
+| `exec list-callables --project "C:\\Users\\ezen601\\Desktop\\Jason\\My project" --limit 5 --json` | ✅ | `compiledAt`, `domainStable` freshness 메타데이터 포함 확인 |
+| `UNITYCTL_HEADLESS_PROJECT="C:\\Users\\ezen601\\Desktop\\Jason\\My project" dotnet test tests/Unityctl.Integration.Tests -c Release --filter "HeadlessBatchValidationTests"` | ✅ | override project 경로 assertion 통과 |
+
+검증 메모:
+
+- 이번 hardening은 새 명령 추가보다 실사용 병목 제거에 초점을 맞췄다.
+- 핵심 변화:
+  - Windows 프로세스 탐지에서 `headless` vs `interactive`를 구분한다.
+  - `await-ready`는 interactive Editor가 없으면 IPC-ready를 기다리지 않는다.
+  - `exec --code`는 `Type.Member`, `Type.Member = value`, `Type.Method(args...)` 미니 DSL로 정식화했다.
+  - `uitk find/get/set-value`는 공통 locator resolver를 쓴다.
+  - `scene open/create`는 `dirtyPolicy=fail|save|discard`를 지원한다.
 
 ## Visual Verification v2 Phase 1 라이브 검증 (My project, Unity 6000.0.64f1)
 

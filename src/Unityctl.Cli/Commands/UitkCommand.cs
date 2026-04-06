@@ -12,15 +12,15 @@ public static class UitkCommand
         CommandRunner.Execute(project, request, json);
     }
 
-    public static void Get(string project, string name, bool json = false)
+    public static void Get(string project, string? name = null, string? locator = null, bool json = false)
     {
-        var request = CreateGetRequest(name);
+        var request = CreateGetRequest(name, locator);
         CommandRunner.Execute(project, request, json);
     }
 
-    public static void SetValue(string project, string name, string value, bool json = false)
+    public static void SetValue(string project, string value, string? name = null, string? locator = null, bool json = false)
     {
-        var request = CreateSetValueRequest(name, value);
+        var request = CreateSetValueRequest(value, name, locator);
         CommandRunner.Execute(project, request, json);
     }
 
@@ -39,33 +39,44 @@ public static class UitkCommand
         };
     }
 
-    internal static CommandRequest CreateGetRequest(string name)
+    internal static CommandRequest CreateGetRequest(string? name = null, string? locator = null)
     {
-        if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("name must not be empty", nameof(name));
+        if (string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(locator))
+            throw new ArgumentException("name or locator must not be empty");
+
+        var parameters = new JsonObject();
+        if (!string.IsNullOrWhiteSpace(name))
+            parameters["name"] = name;
+        if (!string.IsNullOrWhiteSpace(locator))
+            parameters["locator"] = locator;
 
         return new CommandRequest
         {
             Command = WellKnownCommands.UitkGet,
-            Parameters = new JsonObject { ["name"] = name }
+            Parameters = parameters
         };
     }
 
-    internal static CommandRequest CreateSetValueRequest(string name, string value)
+    internal static CommandRequest CreateSetValueRequest(string value, string? name = null, string? locator = null)
     {
-        if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("name must not be empty", nameof(name));
+        if (string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(locator))
+            throw new ArgumentException("name or locator must not be empty");
         if (value == null)
             throw new ArgumentNullException(nameof(value));
+
+        var parameters = new JsonObject
+        {
+            ["value"] = value
+        };
+        if (!string.IsNullOrWhiteSpace(name))
+            parameters["name"] = name;
+        if (!string.IsNullOrWhiteSpace(locator))
+            parameters["locator"] = locator;
 
         return new CommandRequest
         {
             Command = WellKnownCommands.UitkSetValue,
-            Parameters = new JsonObject
-            {
-                ["name"] = name,
-                ["value"] = value
-            }
+            Parameters = parameters
         };
     }
 }

@@ -37,7 +37,22 @@ namespace Unityctl.Plugin.Editor.Commands
             }
             catch (ExecParseException ex)
             {
-                return Fail(StatusCode.InvalidParameters, $"Parse error: {ex.Message}");
+                return Fail(StatusCode.InvalidParameters, ex.Message);
+            }
+            catch (ExecInvocationException ex)
+            {
+                return Fail(
+                    StatusCode.UnknownError,
+                    $"Execution error: {ex.InnerTypeName}: {ex.Message}",
+                    new JObject
+                    {
+                        ["type"] = ex.TypeName,
+                        ["method"] = ex.MemberName,
+                        ["innerExceptionType"] = ex.InnerTypeName
+                    },
+                    string.IsNullOrWhiteSpace(ex.InnerStackTrace)
+                        ? null
+                        : new System.Collections.Generic.List<string> { ex.InnerStackTrace });
             }
             catch (System.Exception ex)
             {

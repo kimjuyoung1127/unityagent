@@ -86,4 +86,20 @@ public sealed class CommandExecutorReadinessTests
         Assert.True(response.Data["target"]!["projectLocked"]!.GetValue<bool>());
         Assert.Equal("ipc-probe-failed", response.Data["target"]!["fallbackReason"]!.GetValue<string>());
     }
+
+    [Fact]
+    public void BuildHeadlessBusyResponse_ExplainsInteractiveRequirement()
+    {
+        var response = CommandExecutor.BuildHeadlessBusyResponse(
+            WellKnownCommands.Status,
+            new UnityProcessInfo
+            {
+                ProcessId = 40184,
+                IsBatchMode = true
+            });
+
+        Assert.Equal(StatusCode.Busy, response.StatusCode);
+        Assert.Contains("headless Unity process", response.Message);
+        Assert.True(response.Data!["requiresInteractiveEditor"]!.GetValue<bool>());
+    }
 }

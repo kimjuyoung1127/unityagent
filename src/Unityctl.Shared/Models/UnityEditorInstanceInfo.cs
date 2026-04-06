@@ -21,4 +21,13 @@ public sealed class UnityEditorInstanceInfo
 
     [JsonPropertyName("ipcReady")]
     public bool IpcReady { get; set; }
+
+    [JsonPropertyName("isBatchMode")]
+    public bool IsBatchMode { get; set; }
+
+    [JsonPropertyName("hasMainWindow")]
+    public bool HasMainWindow { get; set; }
+
+    [JsonPropertyName("processKind")]
+    public string? ProcessKind { get; set; }
 }
